@@ -1,4 +1,8 @@
-use std::{env, net::IpAddr, path::PathBuf};
+use std::{
+    env,
+    net::{IpAddr, SocketAddr},
+    path::PathBuf,
+};
 
 use anyhow::{Context, Result, ensure};
 
