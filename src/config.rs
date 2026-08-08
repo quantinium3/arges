@@ -37,4 +37,8 @@ impl Config {
             master_key_path,
         })
     }
+
+    pub fn socket_addr(&self) -> SocketAddr {
+        SocketAddr::new(self.host, self.port)
+    }
 }
