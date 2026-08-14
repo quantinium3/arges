@@ -1,29 +1,24 @@
-use std::{
-    env,
-    net::{IpAddr, SocketAddr},
-    path::PathBuf,
-};
+use std::{env, path::PathBuf};
 
 use anyhow::{Context, Result, ensure};
 
 #[derive(Debug)]
 pub struct Config {
-    pub host: IpAddr,
-    pub port: u16,
+    pub socket_path: PathBuf,
     pub database_url: String,
     pub master_key_path: PathBuf,
 }
 
 impl Config {
     pub fn new() -> Result<Self> {
-        let host = env::var("ARGES_APP_HOST")
-            .context("ARGES_APP_HOST must be set")?
-            .parse::<IpAddr>()
-            .context("ARGES_APP_HOST must be a valid IP address")?;
-        let port = env::var("ARGES_APP_PORT")
-            .context("ARGES_APP_PORT must be set")?
-            .parse::<u16>()
-            .context("ARGES_APP_PORT must be a valid TCP port")?;
+        let raw_socket_path =
+            env::var("ARGES_APP_SOCKET").context("ARGES_APP_SOCKET must be set")?;
+        let socket_path = PathBuf::from(raw_socket_path);
+        ensure!(
+            socket_path.is_absolute(),
+            "ARGES_APP_SOCKET must be an absolute path got {}",
+            socket_path.display()
+        );
         let database_url =
             env::var("ARGES_DATABASE_URL").context("ARGES_DATABASE_URL must be set")?;
         let raw_master_key_path =
@@ -35,14 +30,9 @@ impl Config {
             master_key_path.display()
         );
         Ok(Self {
-            host,
-            port,
+            socket_path,
             database_url,
             master_key_path,
         })
-    }
-
-    pub fn socket_addr(&self) -> SocketAddr {
-        SocketAddr::new(self.host, self.port)
     }
 }

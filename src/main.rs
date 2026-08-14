@@ -1,6 +1,6 @@
-use anyhow::{Context, Result};
-use std::{future, sync::Arc};
-use tokio::{net::TcpListener, signal::unix, sync::Notify};
+use anyhow::{Context, Result, bail};
+use std::{fs, future, io::ErrorKind, os::unix::fs::PermissionsExt, path::Path, sync::Arc};
+use tokio::{net::UnixListener, signal::unix};
 use tracing::{error, info};
 use tracing_subscriber::EnvFilter;
 
@@ -9,6 +9,8 @@ use crate::{config::Config, state::AppState};
 mod config;
 mod router;
 mod state;
+
+const SOCKET_MODE: u32 = 0o660;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -22,21 +24,53 @@ async fn main() -> Result<()> {
         .init();
 
     let config = Arc::new(Config::new()?);
-    let addr = config.socket_addr();
+    let socket_path = config.socket_path.clone();
     let state = AppState::new(config);
 
-    info!("Starting server on {}", addr);
+    let listener = bind_socket(&socket_path)?;
 
-    let listener = TcpListener::bind(addr)
-        .await
-        .with_context(|| format!("failed to bind tcp listener on {addr}"))?;
+    info!("Starting server on {}", socket_path.display());
 
-    axum::serve(listener, router::routes(state))
+    let result = axum::serve(listener, router::routes(state))
         .with_graceful_shutdown(shutdown_signal())
         .await
-        .context("server failed while handling requests")?;
+        .context("server failed while handling requests");
 
-    Ok(())
+    if let Err(e) = fs::remove_file(&socket_path)
+        && e.kind() != ErrorKind::NotFound
+    {
+        error!(%e, "failed to remove the socket on shutdown");
+    }
+
+    result
+}
+
+fn bind_socket(path: &Path) -> Result<UnixListener> {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)
+            .with_context(|| format!("failed to create socket directory {}", parent.display()))?;
+    }
+
+    if fs::symlink_metadata(path).is_ok() {
+        if std::os::unix::net::UnixStream::connect(path).is_ok() {
+            bail!(
+                "another arges instance is already listening on {}",
+                path.display()
+            );
+        }
+
+        info!("removing the stale socket at {}", path.display());
+        fs::remove_file(path)
+            .with_context(|| format!("failed to remove the stale socket at {}", path.display()))?;
+    }
+
+    let listener = UnixListener::bind(path)
+        .with_context(|| format!("failed to bind unix listener on {}", path.display()))?;
+
+    fs::set_permissions(path, fs::Permissions::from_mode(SOCKET_MODE))
+        .with_context(|| format!("failed to set permissions on {}", path.display()))?;
+
+    Ok(listener)
 }
 
 async fn shutdown_signal() {
