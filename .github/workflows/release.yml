@@ -53,13 +53,13 @@ jobs:
       - name: Prepare artifact
         run: |
           mkdir -p dist
-          cp target/${{ matrix.target }}/release/vulpecula dist/vulpecula-${{ matrix.target }}
+          cp target/${{ matrix.target }}/release/arges dist/arges-${{ matrix.target }}
 
       - name: Upload workflow artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: vulpecula-${{ matrix.target }}
-          path: dist/vulpecula-${{ matrix.target }}
+          name: arges-${{ matrix.target }}
+          path: dist/arges-${{ matrix.target }}
           if-no-files-found: error
 
   publish:
