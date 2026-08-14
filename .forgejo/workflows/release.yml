@@ -1,0 +1,63 @@
+name: release rust binaries for the server
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+concurrency:
+  group: release-${{ forge.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: build and publish
+    runs-on: docker
+    container:
+      image: rust:1-bookworm
+    timeout-minutes: 90
+
+    env:
+      SQLX_OFFLINE: "true"
+      TARGETS: >-
+        x86_64-unknown-linux-gnu
+        x86_64-unknown-linux-musl
+        aarch64-unknown-linux-gnu
+        aarch64-unknown-linux-musl
+
+    steps:
+      - name: Checkout
+        uses: https://code.forgejo.org/actions/checkout@v4
+
+      - name: Install zig and cargo-zigbuild
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends python3-pip
+          pip3 install --break-system-packages ziglang
+          cargo install cargo-zigbuild --locked
+
+      - name: Add rust targets
+        run: rustup target add $TARGETS
+
+      - name: Build release binaries
+        run: |
+          mkdir -p dist/release
+          for target in $TARGETS; do
+            echo "building $target"
+            cargo zigbuild --release --locked --target "$target"
+            cp "target/$target/release/arges" "dist/release/arges-$target"
+          done
+          ls -l dist/release
+
+      - name: Publish release assets
+        uses: https://code.forgejo.org/actions/forgejo-release@v2
+        with:
+          direction: upload
+          url: https://codeberg.org
+          repo: ${{ forge.repository }}
+          tag: ${{ forge.ref_name }}
+          token: ${{ secrets.RELEASE_TOKEN }}
+          release-dir: dist/release
+          override: true
+          verbose: true
