@@ -57,7 +57,6 @@ jobs:
           url: https://codeberg.org
           repo: ${{ forge.repository }}
           tag: ${{ forge.ref_name }}
-          token: ${{ secrets.RELEASE_TOKEN }}
           release-dir: dist/release
           override: true
           verbose: true
