@@ -2,6 +2,8 @@ use std::{env, path::PathBuf};
 
 use anyhow::{Context, Result, ensure};
 
+const MAX_SOCKET_PATH_LEN: usize = 107;
+
 #[derive(Debug)]
 pub struct Config {
     pub socket_path: PathBuf,
@@ -11,28 +13,43 @@ pub struct Config {
 
 impl Config {
     pub fn new() -> Result<Self> {
-        let raw_socket_path =
-            env::var("ARGES_APP_SOCKET").context("ARGES_APP_SOCKET must be set")?;
-        let socket_path = PathBuf::from(raw_socket_path);
+        let socket_path = absolute_path_var("ARGES_APP_SOCKET")?;
         ensure!(
-            socket_path.is_absolute(),
-            "ARGES_APP_SOCKET must be an absolute path got {}",
+            socket_path.as_os_str().len() <= MAX_SOCKET_PATH_LEN,
+            "ARGES_APP_SOCKET must be at most {MAX_SOCKET_PATH_LEN} bytes, got {} bytes in {}",
+            socket_path.as_os_str().len(),
             socket_path.display()
         );
-        let database_url =
-            env::var("ARGES_DATABASE_URL").context("ARGES_DATABASE_URL must be set")?;
-        let raw_master_key_path =
-            env::var("ARGES_MASTER_KEY_PATH").context("ARGES_MASTER_KEY_PATH must be set")?;
-        let master_key_path = PathBuf::from(raw_master_key_path);
+
+        let database_url = var("ARGES_DATABASE_URL")?;
         ensure!(
-            master_key_path.is_absolute(),
-            "ARGES_MASTER_KEY_PATH must be an absolute path got {}",
-            master_key_path.display()
+            !database_url.trim().is_empty(),
+            "ARGES_DATABASE_URL must not be empty"
         );
+
+        let master_key_path = absolute_path_var("ARGES_MASTER_KEY_PATH")?;
+
         Ok(Self {
             socket_path,
             database_url,
             master_key_path,
         })
     }
+}
+
+fn var(name: &str) -> Result<String> {
+    env::var(name).with_context(|| format!("{name} must be set"))
+}
+
+fn absolute_path_var(name: &str) -> Result<PathBuf> {
+    let raw = env::var_os(name).with_context(|| format!("{name} must be set"))?;
+    ensure!(!raw.is_empty(), "{name} must not be empty");
+
+    let path = PathBuf::from(raw);
+    ensure!(
+        path.is_absolute(),
+        "{name} must be an absolute path got {}",
+        path.display()
+    );
+    Ok(path)
 }

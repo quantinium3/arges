@@ -1,68 +1,84 @@
 use anyhow::{Context, Result, bail};
-use std::{fs, future, io::ErrorKind, os::unix::fs::PermissionsExt, path::Path, sync::Arc};
+use std::{
+    fs::{self, DirBuilder, File, OpenOptions},
+    future,
+    io::ErrorKind,
+    os::unix::fs::{DirBuilderExt, FileTypeExt, MetadataExt, OpenOptionsExt, PermissionsExt},
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 use tokio::{net::UnixListener, signal::unix};
-use tracing::{error, info};
-use tracing_subscriber::EnvFilter;
+use tracing::{error, info, warn};
 
 use crate::{config::Config, state::AppState};
 
 mod config;
+mod logging;
 mod router;
 mod state;
 
 const SOCKET_MODE: u32 = 0o660;
+const SOCKET_DIR_MODE: u32 = 0o750;
+const LOCK_MODE: u32 = 0o640;
+type SocketIdentity = (u64, u64);
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let env_filter = EnvFilter::try_from_default_env()
-        .or_else(|_| EnvFilter::try_new("arges=info,tower_http=debug"))
-        .context("failed to configure tracing subscriber")?;
-
-    tracing_subscriber::fmt()
-        .json()
-        .with_env_filter(env_filter)
-        .init();
+    logging::init()?;
 
     let config = Arc::new(Config::new()?);
     let socket_path = config.socket_path.clone();
     let state = AppState::new(config);
 
+    prepare_socket_dir(&socket_path)?;
+
+    let _lock = acquire_lock(&socket_path)?;
+
     let listener = bind_socket(&socket_path)?;
+    let socket_identity = socket_identity(&socket_path)?;
 
-    info!("Starting server on {}", socket_path.display());
+    info!(socket = %socket_path.display(), "arges listening");
 
-    let result = axum::serve(listener, router::routes(state))
+    let res = axum::serve(listener, router::routes(state))
         .with_graceful_shutdown(shutdown_signal())
         .await
         .context("server failed while handling requests");
 
-    if let Err(e) = fs::remove_file(&socket_path)
-        && e.kind() != ErrorKind::NotFound
-    {
-        error!(%e, "failed to remove the socket on shutdown");
-    }
+    remove_socket(&socket_path, socket_identity);
 
-    result
+    res
+}
+
+fn lock_path(socket_path: &Path) -> PathBuf {
+    let mut name = socket_path.as_os_str().to_os_string();
+    name.push(".lock");
+    PathBuf::from(name)
+}
+
+fn acquire_lock(socket_path: &Path) -> Result<File> {
+    let path = lock_path(socket_path);
+    let file = OpenOptions::new()
+        .create(true)
+        .write(true)
+        .truncate(false)
+        .mode(LOCK_MODE)
+        .open(&path)
+        .with_context(|| format!("failed to open the lock file at {}", path.display()))?;
+
+    match file.try_lock() {
+        Ok(()) => Ok(file),
+        Err(fs::TryLockError::WouldBlock) => bail!(
+            "another arges instance holds the lock at {}",
+            path.display()
+        ),
+        Err(fs::TryLockError::Error(e)) => {
+            Err(e).with_context(|| format!("failed to lock {}", path.display()))
+        }
+    }
 }
 
 fn bind_socket(path: &Path) -> Result<UnixListener> {
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent)
-            .with_context(|| format!("failed to create socket directory {}", parent.display()))?;
-    }
-
-    if fs::symlink_metadata(path).is_ok() {
-        if std::os::unix::net::UnixStream::connect(path).is_ok() {
-            bail!(
-                "another arges instance is already listening on {}",
-                path.display()
-            );
-        }
-
-        info!("removing the stale socket at {}", path.display());
-        fs::remove_file(path)
-            .with_context(|| format!("failed to remove the stale socket at {}", path.display()))?;
-    }
+    clear_socket_path(path)?;
 
     let listener = UnixListener::bind(path)
         .with_context(|| format!("failed to bind unix listener on {}", path.display()))?;
@@ -71,6 +87,92 @@ fn bind_socket(path: &Path) -> Result<UnixListener> {
         .with_context(|| format!("failed to set permissions on {}", path.display()))?;
 
     Ok(listener)
+}
+
+fn prepare_socket_dir(path: &Path) -> Result<()> {
+    let Some(parent) = path.parent() else {
+        return Ok(());
+    };
+
+    DirBuilder::new()
+        .recursive(true)
+        .mode(SOCKET_DIR_MODE)
+        .create(parent)
+        .with_context(|| format!("failed to create socket directory {}", parent.display()))?;
+
+    let mode = fs::metadata(parent)
+        .with_context(|| format!("failed to stat socket directory {}", parent.display()))?
+        .permissions()
+        .mode();
+    if mode & 0o007 != 0 {
+        warn!(
+            directory = %parent.display(),
+            mode = format!("{:04o}", mode & 0o7777),
+            "socket directory is accessible to all users"
+        );
+    }
+
+    Ok(())
+}
+
+fn clear_socket_path(path: &Path) -> Result<()> {
+    let metadata = match fs::symlink_metadata(path) {
+        Ok(metadata) => metadata,
+        Err(e) if e.kind() == ErrorKind::NotFound => return Ok(()),
+        Err(e) => {
+            return Err(e).with_context(|| format!("failed to stat {}", path.display()));
+        }
+    };
+
+    if !metadata.file_type().is_socket() {
+        bail!(
+            "{} exists and is not a socket, refusing to remove it",
+            path.display()
+        );
+    }
+
+    match std::os::unix::net::UnixStream::connect(path) {
+        Ok(_) => bail!(
+            "another arges instance is already listening on {}",
+            path.display()
+        ),
+        Err(e) if e.kind() == ErrorKind::ConnectionRefused => {}
+        Err(e) => {
+            return Err(e).with_context(|| {
+                format!(
+                    "failed to probe the existing socket at {}, refusing to remove it",
+                    path.display()
+                )
+            });
+        }
+    }
+
+    info!(socket = %path.display(), "removing stale socket");
+    fs::remove_file(path)
+        .with_context(|| format!("failed to remove the stale socket at {}", path.display()))
+}
+
+fn socket_identity(path: &Path) -> Result<SocketIdentity> {
+    let metadata = fs::symlink_metadata(path)
+        .with_context(|| format!("failed to stat the socket at {}", path.display()))?;
+    Ok((metadata.dev(), metadata.ino()))
+}
+
+fn remove_socket(path: &Path, expected: SocketIdentity) {
+    match socket_identity(path) {
+        Ok(current) if current == expected => {
+            if let Err(e) = fs::remove_file(path)
+                && e.kind() != ErrorKind::NotFound
+            {
+                error!(%e, socket = %path.display(), "failed to remove the socket on shutdown");
+            }
+        }
+        Ok(_) => warn!(
+            socket = %path.display(),
+            "socket was replaced while running, leaving it in place"
+        ),
+        Err(_) => {}
+    }
 }
 
 async fn shutdown_signal() {
