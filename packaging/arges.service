@@ -1,0 +1,61 @@
+[Unit]
+Description=Arges agent
+Documentation=https://codeberg.org/quantinium/arges
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=exec
+ExecStart=/usr/local/bin/arges
+EnvironmentFile=/etc/arges/arges.env
+
+# Runs as root: no User=/Group= override. The socket is created with the
+# service's own uid/gid, so it comes out root:root 0660 - only root can
+# connect, which is what you want when the desktop client tunnels in over
+# `ssh root@host`.
+#
+# If the tunnel logs in as a non-root user instead, keep root privileges but
+# give the socket a second group: set `Group=arges` below and add that user to
+# the group. The process still runs with uid 0, and both the runtime directory
+# and the socket inherit the gid - no chown in the binary, no code change.
+#Group=arges
+
+# /run/arges for the socket, /var/lib/arges for the database. systemd creates
+# both with the modes below and cleans up the runtime one on stop.
+RuntimeDirectory=arges
+RuntimeDirectoryMode=0750
+StateDirectory=arges
+StateDirectoryMode=0750
+
+Restart=on-failure
+RestartSec=2s
+# SIGTERM triggers the graceful shutdown; give in-flight requests time to drain.
+KillSignal=SIGTERM
+TimeoutStopSec=30s
+
+# Logs go to the journal. The binary sees JOURNAL_STREAM and speaks the native
+# journal protocol, so levels arrive as real syslog priorities.
+StandardOutput=journal
+StandardError=journal
+
+# Hardening that still leaves root able to do its job. Collecting package,
+# service or container state may need some of this relaxed - in particular
+# ProtectSystem=strict if the agent ever writes outside its state directory,
+# and RestrictAddressFamilies once it talks to anything but a unix socket.
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+# ProtectSystem=strict leaves /etc read-only; the master key lives there and
+# initial setup writes it, so that one directory stays writable.
+ReadWritePaths=/etc/arges
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+RestrictNamespaces=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+RestrictAddressFamilies=AF_UNIX
+
+[Install]
+WantedBy=multi-user.target
