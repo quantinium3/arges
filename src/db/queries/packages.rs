@@ -33,6 +33,16 @@ pub struct Package {
     pub updated_at: i64,
 }
 
+#[derive(Debug, Clone, FromRow)]
+pub struct PackageView {
+    pub id: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub desired_state: DesiredState,
+    pub status: PackageStatus,
+    pub last_error: Option<String>,
+}
+
 pub async fn exists(pool: &SqlitePool, id: &str) -> Result<bool> {
     Ok(sqlx::query_scalar!(
         r#"select count(*) as "count!: i64" from skirnir_packages where id = ?"#,
@@ -116,17 +126,22 @@ pub async fn fetch_all(pool: &SqlitePool) -> Result<Vec<Package>> {
     .await?)
 }
 
-pub async fn fetch_all_for_manager(pool: &SqlitePool, manager: &str) -> Result<Vec<Package>> {
+pub async fn fetch_all_for_manager(pool: &SqlitePool, manager: &str) -> Result<Vec<PackageView>> {
     Ok(sqlx::query_as!(
-        Package,
+        PackageView,
         r#"select
             p.id as "id!",
             p.name as "name!",
             p.description,
             p.desired_state as "desired_state!: DesiredState",
             p.status as "status!: PackageStatus",
-            p.created_at as "created_at!",
-            p.updated_at as "updated_at!"
+            case when p.status = 'failed' then (
+                select t.reason
+                from package_state_transitions t
+                where t.package_id = p.id and t.to_status = 'failed'
+                order by t.id desc
+                limit 1
+            ) end as "last_error?: String"
         from skirnir_packages p
         inner join package_names pn on pn.package_id = p.id and pn.package_manager = ?"#,
         manager
@@ -209,5 +224,73 @@ pub async fn transition_failed(
     pkg: &Package,
     err: &anyhow::Error,
 ) -> Result<()> {
-    transition(pool, pkg, PackageStatus::Failed, Some(&err.to_string())).await
+    transition(pool, pkg, PackageStatus::Failed, Some(&format!("{err:#}"))).await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    async fn seed(pool: &SqlitePool) -> Package {
+        insert_new(
+            pool,
+            "htop",
+            "htop",
+            "interactive process viewer",
+            DesiredState::Installed,
+            PackageStatus::Removed,
+        )
+        .await
+        .unwrap();
+        set_name_for_manager(pool, "htop", "rpm", "htop")
+            .await
+            .unwrap();
+        fetch_all(pool).await.unwrap().pop().unwrap()
+    }
+
+    #[sqlx::test]
+    async fn last_error_surfaces_for_failed_package(pool: SqlitePool) {
+        let pkg = seed(&pool).await;
+        let err = anyhow::anyhow!("conflicts with curl").context("install of htop failed");
+        transition_failed(&pool, &pkg, &err).await.unwrap();
+
+        let view = fetch_all_for_manager(&pool, "rpm").await.unwrap();
+
+        assert_eq!(view.len(), 1);
+        assert_eq!(view[0].status, PackageStatus::Failed);
+        assert_eq!(
+            view[0].last_error.as_deref(),
+            Some("install of htop failed: conflicts with curl")
+        );
+    }
+
+    #[sqlx::test]
+    async fn last_error_clears_after_a_successful_retry(pool: SqlitePool) {
+        let pkg = seed(&pool).await;
+        transition_failed(&pool, &pkg, &anyhow::anyhow!("conflicts with curl"))
+            .await
+            .unwrap();
+
+        let failed = Package {
+            status: PackageStatus::Failed,
+            ..pkg
+        };
+        transition(&pool, &failed, PackageStatus::Installed, None)
+            .await
+            .unwrap();
+
+        let view = fetch_all_for_manager(&pool, "rpm").await.unwrap();
+
+        assert_eq!(view[0].status, PackageStatus::Installed);
+        assert_eq!(view[0].last_error, None);
+    }
+
+    #[sqlx::test]
+    async fn healthy_package_has_no_last_error(pool: SqlitePool) {
+        seed(&pool).await;
+
+        let view = fetch_all_for_manager(&pool, "rpm").await.unwrap();
+
+        assert_eq!(view[0].last_error, None);
+    }
 }

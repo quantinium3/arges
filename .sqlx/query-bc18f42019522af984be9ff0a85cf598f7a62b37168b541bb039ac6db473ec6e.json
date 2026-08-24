@@ -1,0 +1,50 @@
+{
+  "db_name": "SQLite",
+  "query": "select\n            p.id as \"id!\",\n            p.name as \"name!\",\n            p.description,\n            p.desired_state as \"desired_state!: DesiredState\",\n            p.status as \"status!: PackageStatus\",\n            case when p.status = 'failed' then (\n                select t.reason\n                from package_state_transitions t\n                where t.package_id = p.id and t.to_status = 'failed'\n                order by t.id desc\n                limit 1\n            ) end as \"last_error?: String\"\n        from skirnir_packages p\n        inner join package_names pn on pn.package_id = p.id and pn.package_manager = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "name!",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "description",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "desired_state!: DesiredState",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "status!: PackageStatus",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "last_error?: String",
+        "ordinal": 5,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true,
+      false,
+      true,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "bc18f42019522af984be9ff0a85cf598f7a62b37168b541bb039ac6db473ec6e"
+}

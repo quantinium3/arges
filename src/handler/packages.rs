@@ -2,7 +2,7 @@ use axum::extract::{Path, State};
 use serde::Serialize;
 
 use crate::{
-    db::queries::packages::{self, DesiredState, Package, PackageStatus},
+    db::queries::packages::{self, DesiredState, PackageStatus, PackageView},
     state::AppState,
     utils::api_response::{ApiError, ApiResponse},
 };
@@ -15,10 +15,11 @@ pub struct PackageResponse {
     pub desired_state: DesiredState,
     pub status: PackageStatus,
     pub installed: bool,
+    pub last_error: Option<String>,
 }
 
-impl From<Package> for PackageResponse {
-    fn from(pkg: Package) -> Self {
+impl From<PackageView> for PackageResponse {
+    fn from(pkg: PackageView) -> Self {
         Self {
             installed: pkg.status == PackageStatus::Installed,
             id: pkg.id,
@@ -26,6 +27,7 @@ impl From<Package> for PackageResponse {
             description: pkg.description,
             desired_state: pkg.desired_state,
             status: pkg.status,
+            last_error: pkg.last_error,
         }
     }
 }
