@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "insert into skirnir_packages (id, name, description, desired_state, status)\n        values (?, ?, ?, ?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 5
+    },
+    "nullable": []
+  },
+  "hash": "56c855fe0265e17b84a3734188925a78eb8691bd74e420e3efff61d4313c1628"
+}

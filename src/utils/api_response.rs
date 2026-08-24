@@ -14,6 +14,8 @@ pub struct ApiResponse<T>
 where
     T: Serialize,
 {
+    #[serde(skip)]
+    status: StatusCode,
     success: bool,
     message: String,
     data: T,
@@ -24,8 +26,13 @@ where
     T: Serialize,
 {
     pub fn ok(data: T, message: impl Into<String>) -> Self {
+        Self::with_status(StatusCode::OK, data, message)
+    }
+
+    pub fn with_status(status: StatusCode, data: T, message: impl Into<String>) -> Self {
         Self {
-            success: true,
+            status,
+            success: status.is_success(),
             message: message.into(),
             data,
         }
@@ -37,7 +44,8 @@ where
     T: Serialize,
 {
     fn into_response(self) -> Response {
-        (StatusCode::OK, Json(self)).into_response()
+        let status = self.status;
+        (status, Json(self)).into_response()
     }
 }
 

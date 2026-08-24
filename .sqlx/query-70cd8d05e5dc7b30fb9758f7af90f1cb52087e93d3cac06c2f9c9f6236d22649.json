@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "insert into package_names (package_id, package_manager, name)\n        values (?, ?, ?)\n        on conflict (package_id, package_manager) do update set name = excluded.name",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "70cd8d05e5dc7b30fb9758f7af90f1cb52087e93d3cac06c2f9c9f6236d22649"
+}

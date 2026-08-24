@@ -5,17 +5,25 @@ use std::{
     io::ErrorKind,
     os::unix::fs::{DirBuilderExt, FileTypeExt, MetadataExt, OpenOptionsExt, PermissionsExt},
     path::{Path, PathBuf},
+    sync::Arc,
 };
-use tokio::{net::UnixListener, signal::unix};
+use tokio::{net::UnixListener, signal::unix, sync::Notify};
 use tracing::{error, info, warn};
 
-use crate::config::Config;
+use crate::{
+    config::Config,
+    infra::packages::{catalog, package_manager::PackageManager, reconciler},
+    state::AppState,
+};
 
 mod config;
+mod constants;
+mod db;
 mod handler;
 mod infra;
 mod logging;
 mod router;
+mod state;
 mod utils;
 
 const SOCKET_MODE: u32 = 0o660;
@@ -27,7 +35,8 @@ type SocketIdentity = (u64, u64);
 async fn main() -> Result<()> {
     logging::init()?;
 
-    let socket_path = Config::new()?.socket_path;
+    let config = Config::new()?;
+    let socket_path = config.socket_path;
 
     prepare_socket_dir(&socket_path)?;
 
@@ -36,9 +45,30 @@ async fn main() -> Result<()> {
     let listener = bind_socket(&socket_path)?;
     let socket_identity = socket_identity(&socket_path)?;
 
+    let db_url = format!("sqlite://{}", config.db_path.display());
+    let pool = db::pool::connect(&db_url).await?;
+    db::migration::migrate(&pool).await?;
+
+    let package_manager = PackageManager::detect()
+        .await
+        .context("failed to detect host package manager")?;
+
+    catalog::seed(&pool, &package_manager)
+        .await
+        .context("failed to seed package catalog")?;
+
+    let reconcile_notify = Arc::new(Notify::new());
+    reconciler::init(&pool, reconcile_notify.clone(), package_manager).await?;
+
+    let state = AppState {
+        db: pool,
+        package_manager,
+        reconcile_notify,
+    };
+
     info!(socket = %socket_path.display(), "arges listening");
 
-    let res = axum::serve(listener, router::routes())
+    let res = axum::serve(listener, router::routes(state))
         .with_graceful_shutdown(shutdown_signal())
         .await
         .context("server failed while handling requests");

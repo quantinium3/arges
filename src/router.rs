@@ -1,6 +1,11 @@
 use std::any::Any;
 
-use axum::{Router, response::IntoResponse, response::Response, routing::get};
+use axum::{
+    Router,
+    response::IntoResponse,
+    response::Response,
+    routing::{get, post},
+};
 use tower_http::{
     catch_panic::CatchPanicLayer,
     trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer},
@@ -8,15 +13,25 @@ use tower_http::{
 use tracing::Level;
 
 use crate::{
-    handler::{sysinfo::get_sysinfo, version::get_version},
+    handler::{health, packages, sysinfo, version},
+    state::AppState,
     utils::api_response::{ApiError, ApiResponse, ApiResult},
 };
 
-pub fn routes() -> Router {
+pub fn routes(state: AppState) -> Router {
+    let package_router = Router::new()
+        .route("/", get(packages::get_packages))
+        .route("/{id}/install", post(packages::install_package))
+        .route("/{id}/remove", post(packages::remove_package));
+    let api_router = Router::new()
+        .nest("/package", package_router)
+        .route("/health", get(health::get_health))
+        .route("/sysinfo", get(sysinfo::get_sysinfo))
+        .route("/version", get(version::get_version));
+
     Router::new()
         .route("/", get(root))
-        .route("/api/sysinfo", get(get_sysinfo))
-        .route("/api/version", get(get_version))
+        .nest("/api", api_router)
         .fallback(not_found)
         .layer(
             TraceLayer::new_for_http()
@@ -24,6 +39,7 @@ pub fn routes() -> Router {
                 .on_response(DefaultOnResponse::new().level(Level::INFO)),
         )
         .layer(CatchPanicLayer::custom(on_panic))
+        .with_state(state)
 }
 
 async fn root() -> ApiResult<()> {

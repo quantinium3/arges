@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "select name as \"name!\" from package_names where package_id = ? and package_manager = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "name!",
+        "ordinal": 0,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "9d99bb0ca29df5a457543773e89b9c7c5c7f4bb7571d8dbeeb514106aaafc05a"
+}

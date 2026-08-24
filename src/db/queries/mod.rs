@@ -1,4 +1,2 @@
 pub mod health;
 pub mod packages;
-pub mod sysinfo;
-pub mod version;

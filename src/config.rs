@@ -7,6 +7,7 @@ const MAX_SOCKET_PATH_LEN: usize = 107;
 #[derive(Debug)]
 pub struct Config {
     pub socket_path: PathBuf,
+    pub db_path: PathBuf,
 }
 
 impl Config {
@@ -19,7 +20,12 @@ impl Config {
             socket_path.display()
         );
 
-        Ok(Self { socket_path })
+        let db_path = absolute_path_var("ARGES_DB_PATH")?;
+
+        Ok(Self {
+            socket_path,
+            db_path,
+        })
     }
 }
 

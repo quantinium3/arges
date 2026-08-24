@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "update skirnir_packages set name = ?, description = ? where id = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "d9f23671d5cb94fac2630300e05765098845224f45a194e9a74c81d00b466f70"
+}

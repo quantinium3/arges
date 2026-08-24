@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "insert into package_state_transitions (package_id, from_status, to_status, reason) values (?, ?, ?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "644bbed8906a7e14776624b3811df39561022ea06d20ff39df4e4f27ae7aaa53"
+}

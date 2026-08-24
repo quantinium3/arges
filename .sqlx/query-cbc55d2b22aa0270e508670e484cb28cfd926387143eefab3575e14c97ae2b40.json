@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "update skirnir_packages\n        set desired_state = ?, updated_at = unixepoch()\n        where id = ? and exists (\n            select 1 from package_names\n            where package_id = skirnir_packages.id and package_manager = ?\n        )",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "cbc55d2b22aa0270e508670e484cb28cfd926387143eefab3575e14c97ae2b40"
+}

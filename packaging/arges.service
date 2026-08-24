@@ -25,6 +25,12 @@ EnvironmentFile=/etc/arges/arges.env
 RuntimeDirectory=arges
 RuntimeDirectoryMode=0750
 
+# /var/lib/arges for the sqlite database. ProtectSystem=strict makes the rest
+# of the filesystem read-only, so the db needs a directory systemd carves out
+# for us; it persists across restarts unlike RuntimeDirectory.
+StateDirectory=arges
+StateDirectoryMode=0750
+
 Restart=on-failure
 RestartSec=2s
 # SIGTERM triggers the graceful shutdown; give in-flight requests time to drain.

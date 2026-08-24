@@ -1,0 +1,56 @@
+{
+  "db_name": "SQLite",
+  "query": "select\n            id as \"id!\",\n            name as \"name!\",\n            description,\n            desired_state as \"desired_state!: DesiredState\",\n            status as \"status!: PackageStatus\",\n            created_at as \"created_at!\",\n            updated_at as \"updated_at!\"\n        from skirnir_packages",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "name!",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "description",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "desired_state!: DesiredState",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "status!: PackageStatus",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "created_at!",
+        "ordinal": 5,
+        "type_info": "Integer"
+      },
+      {
+        "name": "updated_at!",
+        "ordinal": 6,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      true,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "38954da77ce4bbee4774c84e736adf28c8b7aab05523a5eb7e459ddfffd9ca4d"
+}

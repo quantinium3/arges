@@ -1,0 +1,56 @@
+{
+  "db_name": "SQLite",
+  "query": "select\n            p.id as \"id!\",\n            p.name as \"name!\",\n            p.description,\n            p.desired_state as \"desired_state!: DesiredState\",\n            p.status as \"status!: PackageStatus\",\n            p.created_at as \"created_at!\",\n            p.updated_at as \"updated_at!\"\n        from skirnir_packages p\n        inner join package_names pn on pn.package_id = p.id and pn.package_manager = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "name!",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "description",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "desired_state!: DesiredState",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "status!: PackageStatus",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "created_at!",
+        "ordinal": 5,
+        "type_info": "Integer"
+      },
+      {
+        "name": "updated_at!",
+        "ordinal": 6,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "c4bddc49baad6d53d8fc04fd0cd2502102365dc908b652297f2729b6b6379fdb"
+}
