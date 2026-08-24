@@ -35,6 +35,19 @@ pub async fn init(pool: &SqlitePool, notify: Arc<Notify>, pm: PackageManager) ->
     Ok(())
 }
 
+pub async fn sync_all(pool: &SqlitePool, pm: &PackageManager) -> Result<()> {
+    for pkg in packages::fetch_all(pool).await? {
+        let Some(manager_name) = lookup_name_for_manager(pool, &pkg.id, pm.id()).await? else {
+            continue;
+        };
+
+        if let Err(e) = sync(pool, pm, &pkg, &manager_name).await {
+            tracing::error!(package = %pkg.id, error = ?e, "failed to sync package reality");
+        }
+    }
+    Ok(())
+}
+
 async fn reconcile(pool: &SqlitePool, pm: &PackageManager) -> Result<()> {
     let packages = packages::fetch_all(pool).await?;
 

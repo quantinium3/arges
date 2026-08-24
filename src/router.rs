@@ -21,6 +21,7 @@ use crate::{
 pub fn routes(state: AppState) -> Router {
     let package_router = Router::new()
         .route("/", get(packages::get_packages))
+        .route("/resync", post(packages::resync_packages))
         .route("/{id}/install", post(packages::install_package))
         .route("/{id}/remove", post(packages::remove_package));
     let api_router = Router::new()

@@ -3,6 +3,7 @@ use serde::Serialize;
 
 use crate::{
     db::queries::packages::{self, DesiredState, PackageStatus, PackageView},
+    infra::packages::reconciler,
     state::AppState,
     utils::api_response::{ApiError, ApiResponse},
 };
@@ -32,17 +33,39 @@ impl From<PackageView> for PackageResponse {
     }
 }
 
+async fn fetch_packages(state: &AppState) -> Result<Vec<PackageResponse>, ApiError> {
+    Ok(
+        packages::fetch_all_for_manager(&state.db, state.package_manager.id())
+            .await
+            .map_err(ApiError::internal)?
+            .into_iter()
+            .map(PackageResponse::from)
+            .collect(),
+    )
+}
+
 pub async fn get_packages(
     State(state): State<AppState>,
 ) -> Result<ApiResponse<Vec<PackageResponse>>, ApiError> {
-    let packages = packages::fetch_all_for_manager(&state.db, state.package_manager.id())
-        .await
-        .map_err(ApiError::internal)?
-        .into_iter()
-        .map(PackageResponse::from)
-        .collect();
+    Ok(ApiResponse::ok(
+        fetch_packages(&state).await?,
+        "packages fetched",
+    ))
+}
 
-    Ok(ApiResponse::ok(packages, "packages fetched"))
+pub async fn resync_packages(
+    State(state): State<AppState>,
+) -> Result<ApiResponse<Vec<PackageResponse>>, ApiError> {
+    reconciler::sync_all(&state.db, &state.package_manager)
+        .await
+        .map_err(ApiError::internal)?;
+
+    state.reconcile_notify.notify_one();
+
+    Ok(ApiResponse::ok(
+        fetch_packages(&state).await?,
+        "packages resynced",
+    ))
 }
 
 pub async fn install_package(
