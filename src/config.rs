@@ -7,8 +7,6 @@ const MAX_SOCKET_PATH_LEN: usize = 107;
 #[derive(Debug)]
 pub struct Config {
     pub socket_path: PathBuf,
-    pub database_url: String,
-    pub master_key_path: PathBuf,
 }
 
 impl Config {
@@ -21,24 +19,8 @@ impl Config {
             socket_path.display()
         );
 
-        let database_url = var("ARGES_DATABASE_URL")?;
-        ensure!(
-            !database_url.trim().is_empty(),
-            "ARGES_DATABASE_URL must not be empty"
-        );
-
-        let master_key_path = absolute_path_var("ARGES_MASTER_KEY_PATH")?;
-
-        Ok(Self {
-            socket_path,
-            database_url,
-            master_key_path,
-        })
+        Ok(Self { socket_path })
     }
-}
-
-fn var(name: &str) -> Result<String> {
-    env::var(name).with_context(|| format!("{name} must be set"))
 }
 
 fn absolute_path_var(name: &str) -> Result<PathBuf> {

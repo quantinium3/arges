@@ -5,17 +5,18 @@ use std::{
     io::ErrorKind,
     os::unix::fs::{DirBuilderExt, FileTypeExt, MetadataExt, OpenOptionsExt, PermissionsExt},
     path::{Path, PathBuf},
-    sync::Arc,
 };
 use tokio::{net::UnixListener, signal::unix};
 use tracing::{error, info, warn};
 
-use crate::{config::Config, state::AppState};
+use crate::config::Config;
 
 mod config;
+mod handler;
+mod infra;
 mod logging;
 mod router;
-mod state;
+mod utils;
 
 const SOCKET_MODE: u32 = 0o660;
 const SOCKET_DIR_MODE: u32 = 0o750;
@@ -26,9 +27,7 @@ type SocketIdentity = (u64, u64);
 async fn main() -> Result<()> {
     logging::init()?;
 
-    let config = Arc::new(Config::new()?);
-    let socket_path = config.socket_path.clone();
-    let state = AppState::new(config);
+    let socket_path = Config::new()?.socket_path;
 
     prepare_socket_dir(&socket_path)?;
 
@@ -39,7 +38,7 @@ async fn main() -> Result<()> {
 
     info!(socket = %socket_path.display(), "arges listening");
 
-    let res = axum::serve(listener, router::routes(state))
+    let res = axum::serve(listener, router::routes())
         .with_graceful_shutdown(shutdown_signal())
         .await
         .context("server failed while handling requests");

@@ -20,12 +20,10 @@ EnvironmentFile=/etc/arges/arges.env
 # and the socket inherit the gid - no chown in the binary, no code change.
 #Group=arges
 
-# /run/arges for the socket, /var/lib/arges for the database. systemd creates
-# both with the modes below and cleans up the runtime one on stop.
+# /run/arges for the socket. systemd creates it with the mode below and cleans
+# it up on stop.
 RuntimeDirectory=arges
 RuntimeDirectoryMode=0750
-StateDirectory=arges
-StateDirectoryMode=0750
 
 Restart=on-failure
 RestartSec=2s
@@ -46,9 +44,6 @@ NoNewPrivileges=yes
 PrivateTmp=yes
 ProtectSystem=strict
 ProtectHome=yes
-# ProtectSystem=strict leaves /etc read-only; the master key lives there and
-# initial setup writes it, so that one directory stays writable.
-ReadWritePaths=/etc/arges
 ProtectKernelModules=yes
 ProtectControlGroups=yes
 RestrictSUIDSGID=yes
