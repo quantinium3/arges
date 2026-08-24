@@ -8,7 +8,7 @@ use tower_http::{
 use tracing::Level;
 
 use crate::{
-    handler::sysinfo::get_sysinfo,
+    handler::{sysinfo::get_sysinfo, version::get_version},
     utils::api_response::{ApiError, ApiResponse, ApiResult},
 };
 
@@ -16,6 +16,7 @@ pub fn routes() -> Router {
     Router::new()
         .route("/", get(root))
         .route("/api/sysinfo", get(get_sysinfo))
+        .route("/api/version", get(get_version))
         .fallback(not_found)
         .layer(
             TraceLayer::new_for_http()
