@@ -1,4 +1,5 @@
 use anyhow::{Context, Result, bail};
+use sqlx::SqlitePool;
 use std::{
     fs::{self, DirBuilder, File, OpenOptions},
     future,
@@ -65,7 +66,7 @@ async fn main() -> Result<()> {
         .await
         .context("failed to seed package catalog")?;
 
-    start_containers().await;
+    let docker = start_containers(&pool).await;
 
     let reconcile_notify = Arc::new(Notify::new());
     reconciler::init(&pool, reconcile_notify.clone(), package_manager).await?;
@@ -75,6 +76,7 @@ async fn main() -> Result<()> {
         package_manager,
         reconcile_notify,
         master_key: Arc::new(master_key),
+        docker,
     };
 
     info!(socket = %socket_path.display(), "arges listening");
@@ -89,18 +91,20 @@ async fn main() -> Result<()> {
     res
 }
 
-async fn start_containers() {
+async fn start_containers(pool: &SqlitePool) -> Option<DockerClient> {
     let docker = match DockerClient::connect().await {
         Ok(docker) => docker,
         Err(e) => {
             warn!(error = ?e, "docker is unavailable, container features are disabled");
-            return;
+            return None;
         }
     };
 
-    if let Err(e) = bootstrap::run(&docker).await {
-        warn!(error = ?e, "container bootstrap failed, container features are disabled");
+    if let Err(e) = bootstrap::run(pool, &docker).await {
+        warn!(error = ?e, "container bootstrap failed, some services may not be running");
     }
+
+    Some(docker)
 }
 
 fn lock_path(socket_path: &Path) -> PathBuf {

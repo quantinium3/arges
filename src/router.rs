@@ -13,7 +13,7 @@ use tower_http::{
 use tracing::Level;
 
 use crate::{
-    handler::{health, packages, parameters, sysinfo, version},
+    handler::{health, packages, parameters, services, sysinfo, version},
     state::AppState,
     utils::api_response::{ApiError, ApiResponse, ApiResult},
 };
@@ -32,7 +32,12 @@ pub fn routes(state: AppState) -> Router {
                 .put(parameters::put_parameter)
                 .delete(parameters::delete_parameter),
         );
+    let service_router = Router::new()
+        .route("/", get(services::get_services))
+        .route("/{id}/enable", post(services::enable_service))
+        .route("/{id}/disable", post(services::disable_service));
     let api_router = Router::new()
+        .nest("/service", service_router)
         .nest("/package", package_router)
         .nest("/parameter", parameter_router)
         .route("/health", get(health::get_health))

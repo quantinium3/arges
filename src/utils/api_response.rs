@@ -60,6 +60,9 @@ pub enum ApiError {
     #[error("{0}")]
     Conflict(String),
 
+    #[error("{0}")]
+    Unavailable(String),
+
     #[error(transparent)]
     Internal(#[from] anyhow::Error),
 }
@@ -77,6 +80,10 @@ impl ApiError {
         Self::Conflict(message.into())
     }
 
+    pub fn unavailable(message: impl Into<String>) -> Self {
+        Self::Unavailable(message.into())
+    }
+
     pub fn internal(error: anyhow::Error) -> Self {
         Self::Internal(error)
     }
@@ -86,6 +93,7 @@ impl ApiError {
             ApiError::BadRequest(_) => StatusCode::BAD_REQUEST,
             ApiError::NotFound(_) => StatusCode::NOT_FOUND,
             ApiError::Conflict(_) => StatusCode::CONFLICT,
+            ApiError::Unavailable(_) => StatusCode::SERVICE_UNAVAILABLE,
             ApiError::Internal(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
@@ -95,6 +103,7 @@ impl ApiError {
             ApiError::BadRequest(_) => "bad_request",
             ApiError::NotFound(_) => "not_found",
             ApiError::Conflict(_) => "conflict",
+            ApiError::Unavailable(_) => "unavailable",
             ApiError::Internal(_) => "internal",
         }
     }

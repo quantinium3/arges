@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "insert into settings (key, value) values ('flag', 'garbage')",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "c2f259c88ae5eb9b8217b16f623ca898a03e79b7c0b2bbff640a74a74e2db82b"
+}

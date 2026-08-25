@@ -34,15 +34,31 @@ impl From<RestartPolicy> for BollardRestartPolicy {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Protocol {
+    Tcp,
+    Udp,
+}
+
+impl Protocol {
+    fn as_str(self) -> &'static str {
+        match self {
+            Protocol::Tcp => "tcp",
+            Protocol::Udp => "udp",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PortMapping {
     pub container_port: u16,
     pub host_port: u16,
     pub host_ip: IpAddr,
+    pub protocol: Protocol,
 }
 
 impl PortMapping {
     pub fn key(&self) -> String {
-        format!("{}/tcp", self.container_port)
+        format!("{}/{}", self.container_port, self.protocol.as_str())
     }
 
     fn binding(&self) -> PortBinding {
@@ -53,12 +69,30 @@ impl PortMapping {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct VolumeMount {
+    pub source: String,
+    pub target: String,
+    pub read_only: bool,
+}
+
+impl VolumeMount {
+    fn to_bind(&self) -> String {
+        if self.read_only {
+            format!("{}:{}:ro", self.source, self.target)
+        } else {
+            format!("{}:{}", self.source, self.target)
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct ContainerSpec {
     pub name: String,
     pub image: String,
     pub network: Option<String>,
     pub ports: Vec<PortMapping>,
+    pub volumes: Vec<VolumeMount>,
     pub env: Vec<String>,
     pub restart: RestartPolicy,
 }
@@ -70,6 +104,7 @@ impl ContainerSpec {
             image: image.into(),
             network: None,
             ports: Vec::new(),
+            volumes: Vec::new(),
             env: Vec::new(),
             restart: RestartPolicy::No,
         }
@@ -85,6 +120,7 @@ impl ContainerSpec {
             container_port,
             host_port,
             host_ip: LOOPBACK,
+            protocol: Protocol::Tcp,
         });
         self
     }
@@ -94,6 +130,26 @@ impl ContainerSpec {
             container_port,
             host_port,
             host_ip: ALL_INTERFACES,
+            protocol: Protocol::Tcp,
+        });
+        self
+    }
+
+    pub fn public_udp_port(mut self, container_port: u16, host_port: u16) -> Self {
+        self.ports.push(PortMapping {
+            container_port,
+            host_port,
+            host_ip: ALL_INTERFACES,
+            protocol: Protocol::Udp,
+        });
+        self
+    }
+
+    pub fn volume(mut self, source: impl Into<String>, target: impl Into<String>) -> Self {
+        self.volumes.push(VolumeMount {
+            source: source.into(),
+            target: target.into(),
+            read_only: false,
         });
         self
     }
@@ -128,6 +184,8 @@ impl ContainerSpec {
             host_config: Some(HostConfig {
                 network_mode: self.network.clone(),
                 port_bindings: (!port_bindings.is_empty()).then_some(port_bindings),
+                binds: (!self.volumes.is_empty())
+                    .then(|| self.volumes.iter().map(VolumeMount::to_bind).collect()),
                 restart_policy: Some(self.restart.into()),
                 ..Default::default()
             }),
@@ -213,7 +271,7 @@ mod tests {
 
     #[test]
     fn the_registry_is_only_reachable_from_the_host() {
-        let body = crate::infra::containers::bootstrap::registry_spec().to_create_body();
+        let body = crate::infra::containers::services::registry_spec().to_create_body();
 
         let binding = &bindings(&body, "5000/tcp")[0];
         assert_eq!(binding.host_ip.as_deref(), Some("127.0.0.1"));

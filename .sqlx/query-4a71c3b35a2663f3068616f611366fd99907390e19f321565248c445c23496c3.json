@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "insert into settings (key, value) values (?1, ?2)\n        on conflict (key) do update set value = excluded.value, updated_at = unixepoch()",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "4a71c3b35a2663f3068616f611366fd99907390e19f321565248c445c23496c3"
+}
