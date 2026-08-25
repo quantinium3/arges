@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "insert into proxy_hosts (\n            id, kind, priority, enabled,\n            upstream_container, upstream_host, upstream_port, upstream_scheme,\n            redirect_to, redirect_status, static_root,\n            tls_mode, tls_certificate_parameter, tls_private_key_parameter, dns_provider_id\n        ) values (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 15
+    },
+    "nullable": []
+  },
+  "hash": "c13a92ac88841fcc6cfac0162cc8a64acb1fabefe6f49bebbded071a040d8747"
+}

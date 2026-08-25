@@ -63,6 +63,9 @@ pub enum ApiError {
     #[error("{0}")]
     Unavailable(String),
 
+    #[error("{0}")]
+    BadGateway(String),
+
     #[error(transparent)]
     Internal(#[from] anyhow::Error),
 }
@@ -84,6 +87,10 @@ impl ApiError {
         Self::Unavailable(message.into())
     }
 
+    pub fn bad_gateway(message: impl Into<String>) -> Self {
+        Self::BadGateway(message.into())
+    }
+
     pub fn internal(error: anyhow::Error) -> Self {
         Self::Internal(error)
     }
@@ -94,6 +101,7 @@ impl ApiError {
             ApiError::NotFound(_) => StatusCode::NOT_FOUND,
             ApiError::Conflict(_) => StatusCode::CONFLICT,
             ApiError::Unavailable(_) => StatusCode::SERVICE_UNAVAILABLE,
+            ApiError::BadGateway(_) => StatusCode::BAD_GATEWAY,
             ApiError::Internal(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
@@ -104,6 +112,7 @@ impl ApiError {
             ApiError::NotFound(_) => "not_found",
             ApiError::Conflict(_) => "conflict",
             ApiError::Unavailable(_) => "unavailable",
+            ApiError::BadGateway(_) => "bad_gateway",
             ApiError::Internal(_) => "internal",
         }
     }

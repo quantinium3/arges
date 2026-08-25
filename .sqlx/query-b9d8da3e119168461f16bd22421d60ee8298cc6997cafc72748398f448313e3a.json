@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "update proxy_config_revisions\n        set status = 'applied', applied_at = unixepoch(), error = null\n        where id = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "b9d8da3e119168461f16bd22421d60ee8298cc6997cafc72748398f448313e3a"
+}

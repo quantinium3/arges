@@ -5,7 +5,7 @@ use tokio::sync::Notify;
 
 use crate::infra::{
     containers::docker::DockerClient, packages::package_manager::PackageManager,
-    parameters::secrets::MasterKey,
+    parameters::secrets::MasterKey, proxy::admin::CaddyAdmin,
 };
 
 #[derive(Clone)]
@@ -15,4 +15,5 @@ pub struct AppState {
     pub reconcile_notify: Arc<Notify>,
     pub master_key: Arc<MasterKey>,
     pub docker: Option<DockerClient>,
+    pub caddy: CaddyAdmin,
 }

@@ -1,0 +1,116 @@
+{
+  "db_name": "SQLite",
+  "query": "select\n            id as \"id!\",\n            kind as \"kind!: ProxyKind\",\n            priority as \"priority!\",\n            enabled as \"enabled!: bool\",\n            upstream_container,\n            upstream_host,\n            upstream_port,\n            upstream_scheme as \"upstream_scheme!: UpstreamScheme\",\n            redirect_to,\n            redirect_status,\n            static_root,\n            tls_mode as \"tls_mode!: TlsMode\",\n            tls_certificate_parameter,\n            tls_private_key_parameter,\n            dns_provider_id,\n            created_at as \"created_at!\",\n            updated_at as \"updated_at!\"\n        from proxy_hosts\n        order by priority, id",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "kind!: ProxyKind",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "priority!",
+        "ordinal": 2,
+        "type_info": "Integer"
+      },
+      {
+        "name": "enabled!: bool",
+        "ordinal": 3,
+        "type_info": "Integer"
+      },
+      {
+        "name": "upstream_container",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "upstream_host",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "upstream_port",
+        "ordinal": 6,
+        "type_info": "Integer"
+      },
+      {
+        "name": "upstream_scheme!: UpstreamScheme",
+        "ordinal": 7,
+        "type_info": "Text"
+      },
+      {
+        "name": "redirect_to",
+        "ordinal": 8,
+        "type_info": "Text"
+      },
+      {
+        "name": "redirect_status",
+        "ordinal": 9,
+        "type_info": "Integer"
+      },
+      {
+        "name": "static_root",
+        "ordinal": 10,
+        "type_info": "Text"
+      },
+      {
+        "name": "tls_mode!: TlsMode",
+        "ordinal": 11,
+        "type_info": "Text"
+      },
+      {
+        "name": "tls_certificate_parameter",
+        "ordinal": 12,
+        "type_info": "Text"
+      },
+      {
+        "name": "tls_private_key_parameter",
+        "ordinal": 13,
+        "type_info": "Text"
+      },
+      {
+        "name": "dns_provider_id",
+        "ordinal": 14,
+        "type_info": "Text"
+      },
+      {
+        "name": "created_at!",
+        "ordinal": 15,
+        "type_info": "Integer"
+      },
+      {
+        "name": "updated_at!",
+        "ordinal": 16,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false,
+      true,
+      true,
+      true,
+      false,
+      true,
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "4449f6b8cdb8165f36237f908749a9030508a34680a6027b20c41743cb91173d"
+}

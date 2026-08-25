@@ -1,9 +1,13 @@
 use axum::extract::{Path, State};
 
 use crate::{
-    infra::containers::{
-        docker::DockerClient,
-        services::{self, ServiceId, ServiceStatus},
+    constants::CADDY_READY_TIMEOUT,
+    infra::{
+        containers::{
+            docker::DockerClient,
+            services::{self, ServiceId, ServiceStatus},
+        },
+        proxy::reconciler,
     },
     state::AppState,
     utils::api_response::{ApiError, ApiResponse},
@@ -49,11 +53,28 @@ async fn set_enabled(
         .await
         .map_err(ApiError::internal)?;
 
-    let message = if enabled {
+    let mut message = if enabled {
         "service enabled"
     } else {
         "service disabled"
     };
+
+    if enabled && id == ServiceId::ReverseProxy {
+        match reconciler::apply_when_ready(
+            &state.db,
+            &state.master_key,
+            &state.caddy,
+            CADDY_READY_TIMEOUT,
+        )
+        .await
+        {
+            Ok(_) => message = "service enabled and proxy routes applied",
+            Err(e) => {
+                tracing::warn!(error = ?e, "started the proxy but could not apply its routes");
+                message = "service enabled, but the proxy routes could not be applied";
+            }
+        }
+    }
 
     Ok(ApiResponse::ok(status, message))
 }

@@ -276,6 +276,9 @@ mod tests {
                 reconcile_notify: Arc::new(Notify::new()),
                 master_key: Arc::new(MasterKey::load(&key_path).await.unwrap()),
                 docker: None,
+                caddy: crate::infra::proxy::admin::CaddyAdmin::new(
+                    crate::constants::CADDY_ADMIN_URL,
+                ),
             };
 
             Self {

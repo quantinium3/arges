@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "insert into proxy_config_revisions (config_hash, config_json, status)\n        values (?1, ?2, 'pending')",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "44fd7b68e3861a53cb3a5aa23f2358188b6e104dfa8a63b725b01c7ffb9ccec9"
+}

@@ -19,3 +19,8 @@ pub const CADDY_HTTPS_PORT: u16 = 443;
 pub const CADDY_ADMIN_PORT: u16 = 2019;
 pub const CADDY_DATA_VOLUME: &str = "arges-caddy-data";
 pub const CADDY_CONFIG_VOLUME: &str = "arges-caddy-config";
+
+pub const CADDY_ADMIN_URL: &str = "http://127.0.0.1:2019";
+pub const MAX_PROXY_DOMAIN_LEN: usize = 253;
+
+pub const CADDY_READY_TIMEOUT: Duration = Duration::from_secs(15);

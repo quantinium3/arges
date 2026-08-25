@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "update proxy_config_revisions set status = 'failed', error = ?2 where id = ?1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "59cacf1f57ae709f09cb2e30813016a059122dc1af74f10db66aa81e41392bc0"
+}

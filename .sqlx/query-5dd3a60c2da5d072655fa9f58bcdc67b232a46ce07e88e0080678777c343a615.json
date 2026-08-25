@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "update proxy_hosts set\n            kind = ?2, priority = ?3, enabled = ?4,\n            upstream_container = ?5, upstream_host = ?6, upstream_port = ?7, upstream_scheme = ?8,\n            redirect_to = ?9, redirect_status = ?10, static_root = ?11,\n            tls_mode = ?12, tls_certificate_parameter = ?13, tls_private_key_parameter = ?14,\n            dns_provider_id = ?15, updated_at = unixepoch()\n        where id = ?1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 15
+    },
+    "nullable": []
+  },
+  "hash": "5dd3a60c2da5d072655fa9f58bcdc67b232a46ce07e88e0080678777c343a615"
+}

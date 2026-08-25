@@ -1,0 +1,50 @@
+{
+  "db_name": "SQLite",
+  "query": "select\n            id as \"id!\",\n            subject_type as \"subject_type!\",\n            subject_id,\n            action as \"action!\",\n            detail,\n            created_at as \"created_at!\"\n        from audit_log\n        where subject_type = ?1\n        order by id desc\n        limit ?2",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "subject_type!",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "subject_id",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "action!",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "detail",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "created_at!",
+        "ordinal": 5,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      true,
+      false,
+      true,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "dfd984f1ca8649d5a9407c6fad5216d81159c15bbb1a9d7c1b03c21062f27088"
+}

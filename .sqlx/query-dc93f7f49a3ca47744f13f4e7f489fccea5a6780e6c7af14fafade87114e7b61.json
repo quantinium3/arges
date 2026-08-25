@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "update proxy_hosts set enabled = ?2, updated_at = unixepoch() where id = ?1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "dc93f7f49a3ca47744f13f4e7f489fccea5a6780e6c7af14fafade87114e7b61"
+}

@@ -1,6 +1,6 @@
 [package]
 name = "arges"
-version = "0.2.4"
+version = "0.2.5"
 edition = "2024"
 
 [dependencies]
@@ -10,8 +10,12 @@ axum = "0.8.9"
 bollard = "0.21.1"
 futures-util = "0.3"
 getrandom = "0.4.3"
+http-body-util = "0.1"
+hyper = { version = "1.11", features = ["client", "http1"] }
+hyper-util = { version = "0.1", features = ["client-legacy", "http1", "tokio"] }
 hex = "0.4.3"
 serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0"
 sha2 = "0.10.9"
 sqlx = { version = "0.8.6", features = ["migrate", "runtime-tokio", "sqlite"] }
 sysinfo = { version = "0.38.4", default-features = false, features = ["system", "disk"] }
@@ -26,5 +30,4 @@ which = "7.0"
 zeroize = { version = "1.9.0", features = ["derive"] }
 
 [dev-dependencies]
-serde_json = "1.0"
 tower = { version = "0.5.3", features = ["util"] }

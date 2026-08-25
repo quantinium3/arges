@@ -13,7 +13,7 @@ use tower_http::{
 use tracing::Level;
 
 use crate::{
-    handler::{health, packages, parameters, services, sysinfo, version},
+    handler::{health, packages, parameters, proxy, services, sysinfo, version},
     state::AppState,
     utils::api_response::{ApiError, ApiResponse, ApiResult},
 };
@@ -36,7 +36,23 @@ pub fn routes(state: AppState) -> Router {
         .route("/", get(services::get_services))
         .route("/{id}/enable", post(services::enable_service))
         .route("/{id}/disable", post(services::disable_service));
+    let proxy_router = Router::new()
+        .route(
+            "/",
+            get(proxy::list_proxy_hosts).post(proxy::create_proxy_host),
+        )
+        .route("/apply", post(proxy::apply_proxy_config))
+        .route("/status", get(proxy::get_proxy_status))
+        .route(
+            "/{id}",
+            get(proxy::get_proxy_host)
+                .put(proxy::update_proxy_host)
+                .delete(proxy::delete_proxy_host),
+        )
+        .route("/{id}/enable", post(proxy::enable_proxy_host))
+        .route("/{id}/disable", post(proxy::disable_proxy_host));
     let api_router = Router::new()
+        .nest("/proxy", proxy_router)
         .nest("/service", service_router)
         .nest("/package", package_router)
         .nest("/parameter", parameter_router)

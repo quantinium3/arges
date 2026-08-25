@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "select config_hash as \"config_hash!\" from proxy_config_revisions\n        where status = 'applied' order by id desc limit 1",
+  "describe": {
+    "columns": [
+      {
+        "name": "config_hash!",
+        "ordinal": 0,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "86cf0fc563d9e113f3522dfcdad6576d6cccc7b3dc9c0e78a623f7c90afeaa6f"
+}

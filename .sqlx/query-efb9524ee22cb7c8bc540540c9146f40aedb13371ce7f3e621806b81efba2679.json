@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "delete from proxy_hosts where id = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "efb9524ee22cb7c8bc540540c9146f40aedb13371ce7f3e621806b81efba2679"
+}

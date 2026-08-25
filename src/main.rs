@@ -14,9 +14,14 @@ use tracing::{error, info, warn};
 use crate::{
     config::Config,
     infra::{
-        containers::{bootstrap, docker::DockerClient},
+        containers::{
+            bootstrap,
+            docker::DockerClient,
+            services::{self, ServiceId},
+        },
         packages::{catalog, package_manager::PackageManager, reconciler},
         parameters::secrets::MasterKey,
+        proxy::{admin::CaddyAdmin, reconciler as proxy_reconciler},
     },
     state::AppState,
 };
@@ -68,6 +73,9 @@ async fn main() -> Result<()> {
 
     let docker = start_containers(&pool).await;
 
+    let caddy = CaddyAdmin::new(constants::CADDY_ADMIN_URL);
+    apply_proxy_config(&pool, &master_key, &caddy).await;
+
     let reconcile_notify = Arc::new(Notify::new());
     reconciler::init(&pool, reconcile_notify.clone(), package_manager).await?;
 
@@ -77,6 +85,7 @@ async fn main() -> Result<()> {
         reconcile_notify,
         master_key: Arc::new(master_key),
         docker,
+        caddy,
     };
 
     info!(socket = %socket_path.display(), "arges listening");
@@ -105,6 +114,23 @@ async fn start_containers(pool: &SqlitePool) -> Option<DockerClient> {
     }
 
     Some(docker)
+}
+
+async fn apply_proxy_config(pool: &SqlitePool, master_key: &MasterKey, caddy: &CaddyAdmin) {
+    let enabled = services::is_enabled(pool, ServiceId::ReverseProxy)
+        .await
+        .unwrap_or(false);
+
+    if !enabled {
+        return;
+    }
+
+    if let Err(e) =
+        proxy_reconciler::apply_when_ready(pool, master_key, caddy, constants::CADDY_READY_TIMEOUT)
+            .await
+    {
+        warn!(error = ?e, "could not apply the proxy config at startup");
+    }
 }
 
 fn lock_path(socket_path: &Path) -> PathBuf {

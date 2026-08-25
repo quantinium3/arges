@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "select proxy_host_id as \"proxy_host_id!\", domain as \"domain!\"\n        from proxy_host_domains order by domain",
+  "describe": {
+    "columns": [
+      {
+        "name": "proxy_host_id!",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "domain!",
+        "ordinal": 1,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "e97be8f95a733738bddc3e6d720b20fd3cd5e4f2a9fd893a40e93424eeec3ad0"
+}

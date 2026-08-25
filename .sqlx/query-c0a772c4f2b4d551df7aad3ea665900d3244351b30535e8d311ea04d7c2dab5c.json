@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "insert into proxy_host_domains (proxy_host_id, domain) values (?1, ?2)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "c0a772c4f2b4d551df7aad3ea665900d3244351b30535e8d311ea04d7c2dab5c"
+}
