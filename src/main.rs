@@ -13,6 +13,7 @@ use tracing::{error, info, warn};
 use crate::{
     config::Config,
     infra::{
+        containers::{bootstrap, docker::DockerClient},
         packages::{catalog, package_manager::PackageManager, reconciler},
         parameters::secrets::MasterKey,
     },
@@ -64,6 +65,8 @@ async fn main() -> Result<()> {
         .await
         .context("failed to seed package catalog")?;
 
+    start_containers().await;
+
     let reconcile_notify = Arc::new(Notify::new());
     reconciler::init(&pool, reconcile_notify.clone(), package_manager).await?;
 
@@ -84,6 +87,20 @@ async fn main() -> Result<()> {
     remove_socket(&socket_path, socket_identity);
 
     res
+}
+
+async fn start_containers() {
+    let docker = match DockerClient::connect().await {
+        Ok(docker) => docker,
+        Err(e) => {
+            warn!(error = ?e, "docker is unavailable, container features are disabled");
+            return;
+        }
+    };
+
+    if let Err(e) = bootstrap::run(&docker).await {
+        warn!(error = ?e, "container bootstrap failed, container features are disabled");
+    }
 }
 
 fn lock_path(socket_path: &Path) -> PathBuf {
