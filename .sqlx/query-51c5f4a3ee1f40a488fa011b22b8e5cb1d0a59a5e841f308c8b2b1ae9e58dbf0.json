@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "delete from parameters where key = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "51c5f4a3ee1f40a488fa011b22b8e5cb1d0a59a5e841f308c8b2b1ae9e58dbf0"
+}

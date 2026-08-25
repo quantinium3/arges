@@ -1,0 +1,56 @@
+{
+  "db_name": "SQLite",
+  "query": "select type as \"kind!: ParameterType\", value, key_id, ciphertext, nonce,\n                wrapped_dek, dek_nonce from parameters where key = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "kind!: ParameterType",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "value",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "key_id",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "ciphertext",
+        "ordinal": 3,
+        "type_info": "Blob"
+      },
+      {
+        "name": "nonce",
+        "ordinal": 4,
+        "type_info": "Blob"
+      },
+      {
+        "name": "wrapped_dek",
+        "ordinal": 5,
+        "type_info": "Blob"
+      },
+      {
+        "name": "dek_nonce",
+        "ordinal": 6,
+        "type_info": "Blob"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "76d6cc84e6d8a90d783389d306202ba052cc904a58eb21e0c587634b1f2479de"
+}

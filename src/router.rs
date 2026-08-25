@@ -13,7 +13,7 @@ use tower_http::{
 use tracing::Level;
 
 use crate::{
-    handler::{health, packages, sysinfo, version},
+    handler::{health, packages, parameters, sysinfo, version},
     state::AppState,
     utils::api_response::{ApiError, ApiResponse, ApiResult},
 };
@@ -24,8 +24,17 @@ pub fn routes(state: AppState) -> Router {
         .route("/resync", post(packages::resync_packages))
         .route("/{id}/install", post(packages::install_package))
         .route("/{id}/remove", post(packages::remove_package));
+    let parameter_router = Router::new()
+        .route("/", get(parameters::list_parameters))
+        .route(
+            "/{*key}",
+            get(parameters::get_parameter)
+                .put(parameters::put_parameter)
+                .delete(parameters::delete_parameter),
+        );
     let api_router = Router::new()
         .nest("/package", package_router)
+        .nest("/parameter", parameter_router)
         .route("/health", get(health::get_health))
         .route("/sysinfo", get(sysinfo::get_sysinfo))
         .route("/version", get(version::get_version));

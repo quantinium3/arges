@@ -9,6 +9,34 @@ Type=exec
 ExecStart=/usr/local/bin/arges
 EnvironmentFile=/etc/arges/arges.env
 
+# The 32-byte master key that wraps every secure_string parameter is delivered
+# as a systemd credential instead of a plain file on disk. systemd decrypts it
+# at start into a per-service ramfs (mode 0400, owned by the service user,
+# never written to disk, torn down when the service stops). An attacker with
+# the disk gets only the sealed blob.
+#
+# Set it up once, on the host itself:
+#   head -c 32 /dev/urandom > /root/master.key
+#   systemd-creds encrypt --name=master.key --with-key=auto \
+#       /root/master.key /etc/arges/master.key.cred
+#
+# --with-key=auto seals to host+TPM2 when a TPM is present and falls back to
+# the host key alone otherwise. --name=master.key binds the blob to this
+# credential name, so another unit cannot load it under a different name.
+#
+# BACK UP /root/master.key OFF-BOX BEFORE DELETING IT. A TPM-sealed credential
+# only decrypts on this machine with this TPM, so the .cred file is not a
+# backup - if the disk or the TPM dies, every stored secret is unrecoverable.
+#
+# On a host where you would rather keep a plain key file, drop the two
+# directives below and set ARGES_MASTER_KEY_PATH in /etc/arges/arges.env
+# instead; the agent only ever sees a path.
+LoadCredentialEncrypted=master.key:/etc/arges/master.key.cred
+
+# Must stay after EnvironmentFile= so it wins over any value set there.
+# %d expands to the credentials directory systemd created above.
+Environment=ARGES_MASTER_KEY_PATH=%d/master.key
+
 # Runs as root: no User=/Group= override. The socket is created with the
 # service's own uid/gid, so it comes out root:root 0660 - only root can
 # connect, which is what you want when the desktop client tunnels in over

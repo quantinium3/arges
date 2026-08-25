@@ -8,6 +8,7 @@ const MAX_SOCKET_PATH_LEN: usize = 107;
 pub struct Config {
     pub socket_path: PathBuf,
     pub db_path: PathBuf,
+    pub master_key_path: PathBuf,
 }
 
 impl Config {
@@ -21,10 +22,12 @@ impl Config {
         );
 
         let db_path = absolute_path_var("ARGES_DB_PATH")?;
+        let master_key_path = absolute_path_var("ARGES_MASTER_KEY_PATH")?;
 
         Ok(Self {
             socket_path,
             db_path,
+            master_key_path,
         })
     }
 }

@@ -202,8 +202,15 @@ pub async fn seed(pool: &SqlitePool, pm: &PackageManager) -> Result<()> {
                 None => (DesiredState::Removed, PackageStatus::Removed),
             };
 
-            packages::insert_new(pool, def.id, def.name, def.description, desired_state, status)
-                .await?;
+            packages::insert_new(
+                pool,
+                def.id,
+                def.name,
+                def.description,
+                desired_state,
+                status,
+            )
+            .await?;
         }
 
         if let Some(apt_name) = def.apt_name {

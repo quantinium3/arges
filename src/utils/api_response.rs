@@ -52,15 +52,29 @@ where
 #[derive(Debug, Error)]
 pub enum ApiError {
     #[error("{0}")]
+    BadRequest(String),
+
+    #[error("{0}")]
     NotFound(String),
+
+    #[error("{0}")]
+    Conflict(String),
 
     #[error(transparent)]
     Internal(#[from] anyhow::Error),
 }
 
 impl ApiError {
+    pub fn bad_request(message: impl Into<String>) -> Self {
+        Self::BadRequest(message.into())
+    }
+
     pub fn not_found(message: impl Into<String>) -> Self {
         Self::NotFound(message.into())
+    }
+
+    pub fn conflict(message: impl Into<String>) -> Self {
+        Self::Conflict(message.into())
     }
 
     pub fn internal(error: anyhow::Error) -> Self {
@@ -69,14 +83,18 @@ impl ApiError {
 
     fn status_code(&self) -> StatusCode {
         match self {
+            ApiError::BadRequest(_) => StatusCode::BAD_REQUEST,
             ApiError::NotFound(_) => StatusCode::NOT_FOUND,
+            ApiError::Conflict(_) => StatusCode::CONFLICT,
             ApiError::Internal(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 
     fn code(&self) -> &'static str {
         match self {
+            ApiError::BadRequest(_) => "bad_request",
             ApiError::NotFound(_) => "not_found",
+            ApiError::Conflict(_) => "conflict",
             ApiError::Internal(_) => "internal",
         }
     }

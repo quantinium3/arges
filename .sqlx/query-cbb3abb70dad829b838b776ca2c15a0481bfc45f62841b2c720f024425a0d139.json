@@ -1,0 +1,62 @@
+{
+  "db_name": "SQLite",
+  "query": "select\n            type as \"kind!: ParameterType\",\n            version as \"version!\",\n            value,\n            key_id,\n            ciphertext,\n            nonce,\n            wrapped_dek,\n            dek_nonce\n        from parameters\n        where key = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "kind!: ParameterType",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "version!",
+        "ordinal": 1,
+        "type_info": "Integer"
+      },
+      {
+        "name": "value",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "key_id",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "ciphertext",
+        "ordinal": 4,
+        "type_info": "Blob"
+      },
+      {
+        "name": "nonce",
+        "ordinal": 5,
+        "type_info": "Blob"
+      },
+      {
+        "name": "wrapped_dek",
+        "ordinal": 6,
+        "type_info": "Blob"
+      },
+      {
+        "name": "dek_nonce",
+        "ordinal": 7,
+        "type_info": "Blob"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "cbb3abb70dad829b838b776ca2c15a0481bfc45f62841b2c720f024425a0d139"
+}

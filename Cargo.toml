@@ -1,12 +1,16 @@
 [package]
 name = "arges"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2024"
 
 [dependencies]
+aes-gcm = "0.11.1"
 anyhow = "1.0.104"
 axum = "0.8.9"
+getrandom = "0.4.3"
+hex = "0.4.3"
 serde = { version = "1.0.229", features = ["derive"] }
+sha2 = "0.10.9"
 sqlx = { version = "0.8.6", features = ["migrate", "runtime-tokio", "sqlite"] }
 sysinfo = { version = "0.38.4", default-features = false, features = ["system", "disk"] }
 thiserror = "2.0.19"
@@ -17,3 +21,8 @@ tracing-journald = "0.3"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter", "json"] }
 uuid = { version = "1.24.0", features = ["serde", "v4"] }
 which = "7.0"
+zeroize = { version = "1.9.0", features = ["derive"] }
+
+[dev-dependencies]
+serde_json = "1.0"
+tower = { version = "0.5.3", features = ["util"] }

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "insert into parameters\n            (key, type, version, key_id, ciphertext, nonce, wrapped_dek, dek_nonce)\n        values (?1, 'secure_string', ?2, ?3, ?4, ?5, ?6, ?7)\n        on conflict (key) do update set\n            type = 'secure_string',\n            version = excluded.version,\n            value = null,\n            key_id = excluded.key_id,\n            ciphertext = excluded.ciphertext,\n            nonce = excluded.nonce,\n            wrapped_dek = excluded.wrapped_dek,\n            dek_nonce = excluded.dek_nonce,\n            updated_at = unixepoch()\n        where parameters.version = excluded.version - 1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 7
+    },
+    "nullable": []
+  },
+  "hash": "b281493d3f6f4b268baee87a5d41ed725cf2707cbe85bd3918cd142cf5e1ad14"
+}

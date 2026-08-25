@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "insert into parameters (key, type, version, value)\n        values (?1, 'string', ?2, ?3)\n        on conflict (key) do update set\n            type = 'string',\n            version = excluded.version,\n            value = excluded.value,\n            key_id = null,\n            ciphertext = null,\n            nonce = null,\n            wrapped_dek = null,\n            dek_nonce = null,\n            updated_at = unixepoch()\n        where parameters.version = excluded.version - 1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "3289ac757e46fcf6576b024167b8aee5d282288ebfb95eb71113a7a24b916ac1"
+}

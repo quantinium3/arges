@@ -1,0 +1,50 @@
+{
+  "db_name": "SQLite",
+  "query": "select\n            key as \"key!\",\n            type as \"kind!: ParameterType\",\n            version as \"version!\",\n            key_id,\n            created_at as \"created_at!\",\n            updated_at as \"updated_at!\"\n        from parameters\n        where key like ?1 escape '\\'\n        order by key",
+  "describe": {
+    "columns": [
+      {
+        "name": "key!",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "kind!: ParameterType",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "version!",
+        "ordinal": 2,
+        "type_info": "Integer"
+      },
+      {
+        "name": "key_id",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "created_at!",
+        "ordinal": 4,
+        "type_info": "Integer"
+      },
+      {
+        "name": "updated_at!",
+        "ordinal": 5,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "f6e85be49bc74c4c4bee0d2cf45765753a2cb44c9d8649b3b4850ccc43304b5b"
+}

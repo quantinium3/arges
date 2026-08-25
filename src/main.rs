@@ -12,7 +12,10 @@ use tracing::{error, info, warn};
 
 use crate::{
     config::Config,
-    infra::packages::{catalog, package_manager::PackageManager, reconciler},
+    infra::{
+        packages::{catalog, package_manager::PackageManager, reconciler},
+        parameters::secrets::MasterKey,
+    },
     state::AppState,
 };
 
@@ -45,6 +48,10 @@ async fn main() -> Result<()> {
     let listener = bind_socket(&socket_path)?;
     let socket_identity = socket_identity(&socket_path)?;
 
+    let master_key = MasterKey::load(&config.master_key_path)
+        .await
+        .context("failed to load the master key")?;
+
     let db_url = format!("sqlite://{}", config.db_path.display());
     let pool = db::pool::connect(&db_url).await?;
     db::migration::migrate(&pool).await?;
@@ -64,6 +71,7 @@ async fn main() -> Result<()> {
         db: pool,
         package_manager,
         reconcile_notify,
+        master_key: Arc::new(master_key),
     };
 
     info!(socket = %socket_path.display(), "arges listening");

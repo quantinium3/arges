@@ -76,7 +76,12 @@ pub async fn insert_new(
     Ok(())
 }
 
-pub async fn update_metadata(pool: &SqlitePool, id: &str, name: &str, description: &str) -> Result<()> {
+pub async fn update_metadata(
+    pool: &SqlitePool,
+    id: &str,
+    name: &str,
+    description: &str,
+) -> Result<()> {
     sqlx::query!(
         "update skirnir_packages set name = ?, description = ? where id = ?",
         name,
