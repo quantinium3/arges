@@ -1,4 +1,8 @@
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    io::ErrorKind,
+    net::{SocketAddr, TcpListener, UdpSocket},
+};
 
 use anyhow::{Context, Result, bail};
 use bollard::{
@@ -13,12 +17,16 @@ use bollard::{
 };
 use futures_util::TryStreamExt;
 
-use crate::{constants::MAX_CONTAINER_LOG_BYTES, infra::containers::spec::ContainerSpec};
+use crate::{
+    constants::MAX_CONTAINER_LOG_BYTES,
+    infra::containers::spec::{ContainerSpec, Protocol},
+};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ContainerStatus {
     pub running: bool,
     pub exit_code: Option<i64>,
+    pub published: Vec<String>,
 }
 
 #[derive(Clone)]
@@ -42,6 +50,31 @@ fn is_conflict(error: &Error) -> bool {
             ..
         }
     )
+}
+
+fn ensure_host_ports_free(spec: &ContainerSpec) -> Result<()> {
+    for mapping in &spec.ports {
+        let addr = SocketAddr::new(mapping.host_ip, mapping.host_port);
+
+        let probe = match mapping.protocol {
+            Protocol::Tcp => TcpListener::bind(addr).map(|_| ()),
+            Protocol::Udp => UdpSocket::bind(addr).map(|_| ()),
+        };
+
+        if probe
+            .as_ref()
+            .is_err_and(|e| e.kind() == ErrorKind::AddrInUse)
+        {
+            bail!(
+                "cannot start container {}: host port {}/{} is already in use by another process",
+                spec.name,
+                mapping.host_port,
+                mapping.protocol.as_str()
+            );
+        }
+    }
+
+    Ok(())
 }
 
 impl DockerClient {
@@ -120,9 +153,22 @@ impl DockerClient {
         match self.0.inspect_container(name, Some(options)).await {
             Ok(response) => {
                 let state = response.state.unwrap_or_default();
+
+                let mut published: Vec<String> = response
+                    .network_settings
+                    .and_then(|settings| settings.ports)
+                    .unwrap_or_default()
+                    .into_iter()
+                    .filter(|(_, bindings)| bindings.as_ref().is_some_and(|b| !b.is_empty()))
+                    .map(|(key, _)| key)
+                    .collect();
+                published.sort();
+                published.dedup();
+
                 Ok(Some(ContainerStatus {
                     running: state.running.unwrap_or(false),
                     exit_code: state.exit_code,
+                    published,
                 }))
             }
             Err(e) if is_not_found(&e) => Ok(None),
@@ -143,7 +189,10 @@ impl DockerClient {
             .await
             .with_context(|| format!("failed to create container {}", spec.name))?;
 
-        self.start(&spec.name).await?;
+        if let Err(e) = self.start(&spec.name).await {
+            let _ = self.stop_and_remove(&spec.name).await;
+            return Err(e);
+        }
 
         Ok(response.id)
     }
@@ -157,17 +206,22 @@ impl DockerClient {
     }
 
     pub async fn ensure_running(&self, spec: &ContainerSpec) -> Result<()> {
-        match self.inspect(&spec.name).await? {
-            Some(status) if status.running => Ok(()),
-            Some(_) => self.start(&spec.name).await,
-            None => match self.create_and_start(spec).await {
-                Ok(_) => Ok(()),
-                Err(e) => match e.downcast_ref::<Error>() {
-                    Some(inner) if is_conflict(inner) => self.start(&spec.name).await,
-                    _ => Err(e),
-                },
-            },
+        let expected = spec.published_keys();
+
+        if let Some(status) = self.inspect(&spec.name).await? {
+            if status.running && status.published == expected {
+                return Ok(());
+            }
+
+            self.stop_and_remove(&spec.name)
+                .await
+                .with_context(|| format!("failed to replace container {}", spec.name))?;
         }
+
+        ensure_host_ports_free(spec)?;
+        self.create_and_start(spec).await?;
+
+        Ok(())
     }
 
     pub async fn logs(&self, container: &str, tail: i64) -> Result<String> {
@@ -214,5 +268,87 @@ impl DockerClient {
             Err(e) if is_not_found(&e) => Ok(()),
             Err(e) => Err(e).with_context(|| format!("failed to remove container {container}")),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::infra::containers::spec::LOOPBACK;
+
+    #[test]
+    fn published_keys_are_sorted_and_deduped() {
+        let spec = ContainerSpec::new("app", "nginx")
+            .public_port(443, 443)
+            .public_udp_port(443, 443)
+            .port(80, 8080);
+
+        assert_eq!(spec.published_keys(), vec!["443/tcp", "443/udp", "80/tcp"]);
+    }
+
+    #[test]
+    fn a_spec_without_ports_expects_nothing_published() {
+        assert!(
+            ContainerSpec::new("app", "nginx")
+                .published_keys()
+                .is_empty()
+        );
+    }
+
+    #[test]
+    fn a_free_port_passes_the_preflight() {
+        let probe = TcpListener::bind((LOOPBACK, 0)).unwrap();
+        let port = probe.local_addr().unwrap().port();
+        drop(probe);
+
+        let spec = ContainerSpec::new("app", "nginx").port(80, port);
+        assert!(ensure_host_ports_free(&spec).is_ok());
+    }
+
+    #[test]
+    fn a_taken_tcp_port_is_reported_before_the_container_is_created() {
+        let held = TcpListener::bind((LOOPBACK, 0)).unwrap();
+        let port = held.local_addr().unwrap().port();
+
+        let spec = ContainerSpec::new("arges-caddy", "caddy").port(80, port);
+        let err = ensure_host_ports_free(&spec).unwrap_err().to_string();
+
+        assert!(err.contains("arges-caddy"), "{err}");
+        assert!(err.contains(&format!("{port}/tcp")), "{err}");
+        assert!(err.contains("already in use"), "{err}");
+    }
+
+    #[test]
+    fn a_port_we_lack_permission_to_probe_is_not_treated_as_taken() {
+        let spec = ContainerSpec::new("app", "caddy").public_port(80, 80);
+
+        let probe = TcpListener::bind((crate::infra::containers::spec::ALL_INTERFACES, 80u16));
+        let privileged =
+            probe.is_err() && !matches!(probe.as_ref().unwrap_err().kind(), ErrorKind::AddrInUse);
+
+        if privileged {
+            assert!(
+                ensure_host_ports_free(&spec).is_ok(),
+                "a permission error must not be reported as a port conflict"
+            );
+        }
+    }
+
+    #[test]
+    fn a_taken_udp_port_is_reported_too() {
+        let held = UdpSocket::bind((LOOPBACK, 0)).unwrap();
+        let port = held.local_addr().unwrap().port();
+
+        let mut spec = ContainerSpec::new("app", "caddy");
+        spec.ports
+            .push(crate::infra::containers::spec::PortMapping {
+                container_port: 443,
+                host_port: port,
+                host_ip: LOOPBACK,
+                protocol: Protocol::Udp,
+            });
+
+        let err = ensure_host_ports_free(&spec).unwrap_err().to_string();
+        assert!(err.contains(&format!("{port}/udp")), "{err}");
     }
 }

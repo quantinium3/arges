@@ -40,7 +40,7 @@ pub enum Protocol {
 }
 
 impl Protocol {
-    fn as_str(self) -> &'static str {
+    pub fn as_str(self) -> &'static str {
         match self {
             Protocol::Tcp => "tcp",
             Protocol::Udp => "udp",
@@ -162,6 +162,13 @@ impl ContainerSpec {
     pub fn restart(mut self, restart: RestartPolicy) -> Self {
         self.restart = restart;
         self
+    }
+
+    pub fn published_keys(&self) -> Vec<String> {
+        let mut keys: Vec<String> = self.ports.iter().map(PortMapping::key).collect();
+        keys.sort();
+        keys.dedup();
+        keys
     }
 
     pub fn to_create_body(&self) -> ContainerCreateBody {

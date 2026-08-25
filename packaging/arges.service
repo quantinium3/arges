@@ -4,6 +4,12 @@ Documentation=https://codeberg.org/quantinium/arges
 After=network-online.target
 Wants=network-online.target
 
+# Ordering only, not a dependency: arges runs fine without docker (container
+# features simply stay disabled). But if docker is starting this boot, wait for
+# it - otherwise arges races ahead, finds no daemon, and leaves caddy and the
+# registry down until the next restart.
+After=docker.service
+
 [Service]
 Type=exec
 ExecStart=/usr/local/bin/arges
