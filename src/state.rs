@@ -16,6 +16,7 @@ pub struct AppState {
     pub package_manager: PackageManager,
     pub reconcile_notify: Arc<Notify>,
     pub deploy_notify: Arc<Notify>,
+    pub retention_notify: Arc<Notify>,
     pub master_key: Arc<MasterKey>,
     pub docker: Option<DockerClient>,
     pub caddy: CaddyAdmin,

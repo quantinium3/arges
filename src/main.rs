@@ -20,7 +20,7 @@ use crate::{
             registry::RegistryClient,
             services::{self, ServiceId},
         },
-        deployments::reconciler as deployment_reconciler,
+        deployments::{reconciler as deployment_reconciler, retention},
         packages::{catalog, package_manager::PackageManager, reconciler},
         parameters::secrets::MasterKey,
         proxy::{admin::CaddyAdmin, reconciler as proxy_reconciler},
@@ -82,7 +82,14 @@ async fn main() -> Result<()> {
     apply_proxy_config(&pool, &master_key, &caddy).await;
 
     let deploy_notify = Arc::new(Notify::new());
+    let retention_notify = Arc::new(Notify::new());
     if let Some(docker) = &docker {
+        retention::init(
+            pool.clone(),
+            registry.clone(),
+            docker.clone(),
+            retention_notify.clone(),
+        );
         deployment_reconciler::init(
             pool.clone(),
             master_key.clone(),
@@ -100,6 +107,7 @@ async fn main() -> Result<()> {
         package_manager,
         reconcile_notify,
         deploy_notify,
+        retention_notify,
         master_key,
         docker,
         caddy,

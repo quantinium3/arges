@@ -275,6 +275,7 @@ mod tests {
                 package_manager: PackageManager::APT,
                 reconcile_notify: Arc::new(Notify::new()),
                 deploy_notify: Arc::new(Notify::new()),
+                retention_notify: Arc::new(Notify::new()),
                 master_key: Arc::new(MasterKey::load(&key_path).await.unwrap()),
                 docker: None,
                 caddy: crate::infra::proxy::admin::CaddyAdmin::new(

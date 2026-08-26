@@ -8,6 +8,7 @@ use anyhow::{Context, Result, bail};
 use bollard::{
     Docker,
     errors::Error,
+    exec::{CreateExecOptions, StartExecOptions, StartExecResults},
     models::HealthStatusEnum,
     models::NetworkCreateRequest,
     query_parameters::{
@@ -284,6 +285,52 @@ impl DockerClient {
             .flatten()
             .map(|name| name.trim_start_matches('/').to_string())
             .collect())
+    }
+
+    pub async fn exec(&self, container: &str, command: &[&str]) -> Result<String> {
+        let config = CreateExecOptions {
+            cmd: Some(command.iter().map(|c| c.to_string()).collect()),
+            attach_stdout: Some(true),
+            attach_stderr: Some(true),
+            ..Default::default()
+        };
+
+        let created = self
+            .0
+            .create_exec(container, config)
+            .await
+            .with_context(|| format!("failed to prepare a command in {container}"))?;
+
+        let started = self
+            .0
+            .start_exec(&created.id, None::<StartExecOptions>)
+            .await
+            .with_context(|| format!("failed to run a command in {container}"))?;
+
+        let mut output = String::new();
+
+        if let StartExecResults::Attached {
+            output: mut stream, ..
+        } = started
+        {
+            while let Some(chunk) = stream.try_next().await? {
+                output.push_str(&String::from_utf8_lossy(&chunk.into_bytes()));
+            }
+        }
+
+        let inspected = self
+            .0
+            .inspect_exec(&created.id)
+            .await
+            .with_context(|| format!("failed to inspect a command in {container}"))?;
+
+        match inspected.exit_code {
+            Some(0) | None => Ok(output),
+            Some(code) => bail!(
+                "command in {container} exited with {code}: {}",
+                output.trim()
+            ),
+        }
     }
 
     pub async fn create_raw(

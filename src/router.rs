@@ -70,6 +70,7 @@ pub fn routes(state: AppState) -> Router {
             "/{id}/rollback/{release_id}",
             post(deployments::rollback_deployment),
         )
+        .route("/retention", post(deployments::run_retention))
         .route("/{id}/start", post(deployments::start_deployment))
         .route("/{id}/stop", post(deployments::stop_deployment));
     let api_router = Router::new()

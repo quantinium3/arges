@@ -591,3 +591,110 @@ pub async fn delete_release(pool: &SqlitePool, id: &str) -> Result<bool> {
 
     Ok(result.rows_affected() > 0)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn deployment(name: &str, retained: i64) -> NewDeployment {
+        NewDeployment {
+            name: name.to_string(),
+            container_port: Some(80),
+            memory_limit_mb: None,
+            cpu_shares: None,
+            health_path: None,
+            health_timeout_seconds: 30,
+            proxy_host_id: None,
+            retained_releases: retained,
+            source: None,
+            env: Vec::new(),
+            volumes: Vec::new(),
+            ports: Vec::new(),
+        }
+    }
+
+    async fn seed(pool: &SqlitePool, retained: i64, tags: &[&str]) -> String {
+        create(pool, "d1", &deployment("app", retained))
+            .await
+            .unwrap();
+
+        for (i, tag) in tags.iter().enumerate() {
+            create_release(
+                pool,
+                &format!("r{i}"),
+                "d1",
+                tag,
+                &format!("localhost:5000/app:{tag}"),
+                Some("sha256:abc"),
+                None,
+                None,
+            )
+            .await
+            .unwrap();
+        }
+
+        "d1".to_string()
+    }
+
+    #[sqlx::test]
+    async fn retention_keeps_the_newest_releases(pool: SqlitePool) {
+        let id = seed(&pool, 2, &["v1", "v2", "v3", "v4", "v5"]).await;
+
+        let prunable: Vec<String> = prunable_releases(&pool, &id)
+            .await
+            .unwrap()
+            .into_iter()
+            .map(|r| r.tag)
+            .collect();
+
+        assert_eq!(prunable, vec!["v3", "v2", "v1"]);
+    }
+
+    #[sqlx::test]
+    async fn retention_never_prunes_the_live_release(pool: SqlitePool) {
+        let id = seed(&pool, 2, &["v1", "v2", "v3", "v4", "v5"]).await;
+        set_active_release(&pool, &id, Some("r0")).await.unwrap();
+
+        let prunable: Vec<String> = prunable_releases(&pool, &id)
+            .await
+            .unwrap()
+            .into_iter()
+            .map(|r| r.tag)
+            .collect();
+
+        assert_eq!(prunable, vec!["v3", "v2"], "v1 is live and must survive");
+    }
+
+    #[sqlx::test]
+    async fn retention_never_prunes_the_queued_release(pool: SqlitePool) {
+        let id = seed(&pool, 2, &["v1", "v2", "v3", "v4", "v5"]).await;
+        set_desired_release(&pool, &id, "r1").await.unwrap();
+
+        let prunable: Vec<String> = prunable_releases(&pool, &id)
+            .await
+            .unwrap()
+            .into_iter()
+            .map(|r| r.tag)
+            .collect();
+
+        assert_eq!(prunable, vec!["v3", "v1"], "v2 is queued and must survive");
+    }
+
+    #[sqlx::test]
+    async fn nothing_is_prunable_below_the_retention_count(pool: SqlitePool) {
+        let id = seed(&pool, 5, &["v1", "v2"]).await;
+
+        assert!(prunable_releases(&pool, &id).await.unwrap().is_empty());
+    }
+
+    #[sqlx::test]
+    async fn the_database_refuses_to_delete_a_live_release(pool: SqlitePool) {
+        let id = seed(&pool, 2, &["v1"]).await;
+        set_active_release(&pool, &id, Some("r0")).await.unwrap();
+
+        assert!(
+            delete_release(&pool, "r0").await.is_err(),
+            "on delete restrict must protect the running release"
+        );
+    }
+}

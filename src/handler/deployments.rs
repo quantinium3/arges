@@ -11,6 +11,7 @@ use crate::{
             DeploymentSource, DeploymentVolume, DesiredState, EnvScope, Protocol,
         },
     },
+    infra::deployments::retention,
     state::AppState,
     utils::api_response::{ApiError, ApiResponse},
 };
@@ -391,6 +392,32 @@ pub async fn register_release(
     ))
 }
 
+#[derive(Serialize)]
+pub struct RetentionResponse {
+    pub pruned_releases: usize,
+    pub garbage_collected: bool,
+}
+
+pub async fn run_retention(
+    State(state): State<AppState>,
+) -> Result<ApiResponse<RetentionResponse>, ApiError> {
+    let docker = state.docker.as_ref().ok_or_else(|| {
+        ApiError::unavailable("docker is not available on this host, retention cannot run")
+    })?;
+
+    let pruned = retention::run(&state.db, &state.registry, docker)
+        .await
+        .map_err(ApiError::internal)?;
+
+    Ok(ApiResponse::ok(
+        RetentionResponse {
+            pruned_releases: pruned.releases,
+            garbage_collected: pruned.collected,
+        },
+        "retention complete",
+    ))
+}
+
 async fn set_state(
     state: AppState,
     id: &str,
@@ -524,6 +551,7 @@ mod tests {
                 package_manager: PackageManager::APT,
                 reconcile_notify: Arc::new(Notify::new()),
                 deploy_notify: Arc::new(Notify::new()),
+                retention_notify: Arc::new(Notify::new()),
                 master_key: Arc::new(MasterKey::load(&path).await.unwrap()),
                 docker: None,
                 caddy: CaddyAdmin::new(CADDY_ADMIN_URL),
