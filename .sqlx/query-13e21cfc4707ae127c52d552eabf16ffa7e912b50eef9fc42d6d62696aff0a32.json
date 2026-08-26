@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "insert into deployment_env (deployment_id, name, scope, value, parameter_key)\n            values (?1, ?2, ?3, ?4, ?5)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 5
+    },
+    "nullable": []
+  },
+  "hash": "13e21cfc4707ae127c52d552eabf16ffa7e912b50eef9fc42d6d62696aff0a32"
+}

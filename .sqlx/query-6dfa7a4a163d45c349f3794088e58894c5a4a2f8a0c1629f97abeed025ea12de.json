@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "update deployments set\n            name = ?2, container_port = ?3, memory_limit_mb = ?4, cpu_shares = ?5,\n            health_path = ?6, health_timeout_seconds = ?7, proxy_host_id = ?8,\n            retained_releases = ?9, updated_at = unixepoch()\n        where id = ?1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 9
+    },
+    "nullable": []
+  },
+  "hash": "6dfa7a4a163d45c349f3794088e58894c5a4a2f8a0c1629f97abeed025ea12de"
+}

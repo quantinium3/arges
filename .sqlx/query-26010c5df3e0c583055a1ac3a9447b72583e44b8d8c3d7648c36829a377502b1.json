@@ -1,0 +1,74 @@
+{
+  "db_name": "SQLite",
+  "query": "select deployment_id as \"deployment_id!\", repository as \"repository!\",\n            git_ref as \"git_ref!\", subdirectory, credential_key,\n            builder as \"builder!: Builder\", dockerfile_path,\n            install_command, build_command, start_command\n        from deployment_sources",
+  "describe": {
+    "columns": [
+      {
+        "name": "deployment_id!",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "repository!",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "git_ref!",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "subdirectory",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "credential_key",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "builder!: Builder",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "dockerfile_path",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "install_command",
+        "ordinal": 7,
+        "type_info": "Text"
+      },
+      {
+        "name": "build_command",
+        "ordinal": 8,
+        "type_info": "Text"
+      },
+      {
+        "name": "start_command",
+        "ordinal": 9,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "26010c5df3e0c583055a1ac3a9447b72583e44b8d8c3d7648c36829a377502b1"
+}

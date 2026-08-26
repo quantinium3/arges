@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "insert into deployment_volumes (deployment_id, container_path, volume_name, read_only)\n            values (?1, ?2, ?3, ?4)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "8dc12719a4fd7ff7cfa3f6a3c15d9a30073619a06771caa5329cb22da1d7224f"
+}

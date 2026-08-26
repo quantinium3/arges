@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "insert into deployment_sources (\n                deployment_id, repository, git_ref, subdirectory, credential_key,\n                builder, dockerfile_path, install_command, build_command, start_command\n            ) values (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 10
+    },
+    "nullable": []
+  },
+  "hash": "932f9c579af0c19100864074c39fc0af89a1b55d9a3fe9b1d6e8e904d89c68e5"
+}

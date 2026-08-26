@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "update deployments set active_release_id = ?2, updated_at = unixepoch() where id = ?1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "22f00328c71c9ed8153bc4d89d9a71125208c5ca951b789aec7241abe6b32127"
+}

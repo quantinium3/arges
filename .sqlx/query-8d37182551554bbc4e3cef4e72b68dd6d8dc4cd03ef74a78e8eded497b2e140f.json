@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "insert into deployment_releases\n            (id, deployment_id, tag, image, digest, commit_sha, source_ref)\n        values (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 7
+    },
+    "nullable": []
+  },
+  "hash": "8d37182551554bbc4e3cef4e72b68dd6d8dc4cd03ef74a78e8eded497b2e140f"
+}

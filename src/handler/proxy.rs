@@ -393,6 +393,9 @@ mod tests {
                 master_key: Arc::new(MasterKey::load(&path).await.unwrap()),
                 docker: None,
                 caddy: CaddyAdmin::new(CADDY_ADMIN_URL),
+                registry: crate::infra::containers::registry::RegistryClient::new(
+                    crate::constants::REGISTRY_URL,
+                ),
             };
 
             Self {

@@ -17,6 +17,7 @@ use crate::{
         containers::{
             bootstrap,
             docker::DockerClient,
+            registry::RegistryClient,
             services::{self, ServiceId},
         },
         packages::{catalog, package_manager::PackageManager, reconciler},
@@ -74,6 +75,7 @@ async fn main() -> Result<()> {
     let docker = start_containers(&pool).await;
 
     let caddy = CaddyAdmin::new(constants::CADDY_ADMIN_URL);
+    let registry = RegistryClient::new(constants::REGISTRY_URL);
     apply_proxy_config(&pool, &master_key, &caddy).await;
 
     let reconcile_notify = Arc::new(Notify::new());
@@ -86,6 +88,7 @@ async fn main() -> Result<()> {
         master_key: Arc::new(master_key),
         docker,
         caddy,
+        registry,
     };
 
     info!(socket = %socket_path.display(), "arges listening");

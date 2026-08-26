@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "insert into port_allocations (host_port, protocol, deployment_id, exposed)\n            values (?1, ?2, ?3, ?4)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "14cbce41ff1841ae90be1a00f0e3e32e98714703211474c5cd86f0ffb8e8f0ea"
+}

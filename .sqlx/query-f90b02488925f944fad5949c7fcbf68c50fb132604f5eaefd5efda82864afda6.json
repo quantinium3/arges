@@ -1,0 +1,38 @@
+{
+  "db_name": "SQLite",
+  "query": "select deployment_id, host_port as \"host_port!\",\n            protocol as \"protocol!: Protocol\", exposed as \"exposed!: bool\"\n        from port_allocations where deployment_id is not null order by host_port",
+  "describe": {
+    "columns": [
+      {
+        "name": "deployment_id",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "host_port!",
+        "ordinal": 1,
+        "type_info": "Integer"
+      },
+      {
+        "name": "protocol!: Protocol",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "exposed!: bool",
+        "ordinal": 3,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "f90b02488925f944fad5949c7fcbf68c50fb132604f5eaefd5efda82864afda6"
+}

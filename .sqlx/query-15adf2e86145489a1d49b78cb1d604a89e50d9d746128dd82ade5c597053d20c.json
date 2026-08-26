@@ -1,0 +1,110 @@
+{
+  "db_name": "SQLite",
+  "query": "select\n            id as \"id!\", name as \"name!\",\n            desired_state as \"desired_state!: DesiredState\",\n            status as \"status!: DeploymentStatus\",\n            last_error, desired_release_id, active_release_id,\n            container_port, memory_limit_mb, cpu_shares,\n            health_path, health_timeout_seconds as \"health_timeout_seconds!\",\n            proxy_host_id, retained_releases as \"retained_releases!\",\n            created_at as \"created_at!\", updated_at as \"updated_at!\"\n        from deployments order by name",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "name!",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "desired_state!: DesiredState",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "status!: DeploymentStatus",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "last_error",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "desired_release_id",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "active_release_id",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "container_port",
+        "ordinal": 7,
+        "type_info": "Integer"
+      },
+      {
+        "name": "memory_limit_mb",
+        "ordinal": 8,
+        "type_info": "Integer"
+      },
+      {
+        "name": "cpu_shares",
+        "ordinal": 9,
+        "type_info": "Integer"
+      },
+      {
+        "name": "health_path",
+        "ordinal": 10,
+        "type_info": "Text"
+      },
+      {
+        "name": "health_timeout_seconds!",
+        "ordinal": 11,
+        "type_info": "Integer"
+      },
+      {
+        "name": "proxy_host_id",
+        "ordinal": 12,
+        "type_info": "Text"
+      },
+      {
+        "name": "retained_releases!",
+        "ordinal": 13,
+        "type_info": "Integer"
+      },
+      {
+        "name": "created_at!",
+        "ordinal": 14,
+        "type_info": "Integer"
+      },
+      {
+        "name": "updated_at!",
+        "ordinal": 15,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "15adf2e86145489a1d49b78cb1d604a89e50d9d746128dd82ade5c597053d20c"
+}

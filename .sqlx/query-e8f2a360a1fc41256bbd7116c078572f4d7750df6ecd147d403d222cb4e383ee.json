@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "insert into deployments (\n            id, name, container_port, memory_limit_mb, cpu_shares,\n            health_path, health_timeout_seconds, proxy_host_id, retained_releases\n        ) values (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 9
+    },
+    "nullable": []
+  },
+  "hash": "e8f2a360a1fc41256bbd7116c078572f4d7750df6ecd147d403d222cb4e383ee"
+}

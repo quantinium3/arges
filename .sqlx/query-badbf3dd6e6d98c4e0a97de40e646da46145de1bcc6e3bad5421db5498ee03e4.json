@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "select retained_releases as \"retained_releases!\" from deployments where id = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "retained_releases!",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "badbf3dd6e6d98c4e0a97de40e646da46145de1bcc6e3bad5421db5498ee03e4"
+}

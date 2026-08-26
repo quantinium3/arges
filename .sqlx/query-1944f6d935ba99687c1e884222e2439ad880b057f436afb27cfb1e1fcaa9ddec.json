@@ -1,0 +1,44 @@
+{
+  "db_name": "SQLite",
+  "query": "select deployment_id as \"deployment_id!\", name as \"name!\",\n            scope as \"scope!: EnvScope\", value, parameter_key\n        from deployment_env order by name",
+  "describe": {
+    "columns": [
+      {
+        "name": "deployment_id!",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "name!",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "scope!: EnvScope",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "value",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "parameter_key",
+        "ordinal": 4,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "1944f6d935ba99687c1e884222e2439ad880b057f436afb27cfb1e1fcaa9ddec"
+}

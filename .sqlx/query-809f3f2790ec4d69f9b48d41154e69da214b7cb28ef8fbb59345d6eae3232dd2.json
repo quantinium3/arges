@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "select desired_release_id, active_release_id from deployments where id = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "desired_release_id",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "active_release_id",
+        "ordinal": 1,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true,
+      true
+    ]
+  },
+  "hash": "809f3f2790ec4d69f9b48d41154e69da214b7cb28ef8fbb59345d6eae3232dd2"
+}

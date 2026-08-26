@@ -1,0 +1,38 @@
+{
+  "db_name": "SQLite",
+  "query": "select deployment_id as \"deployment_id!\", container_path as \"container_path!\",\n            volume_name as \"volume_name!\", read_only as \"read_only!: bool\"\n        from deployment_volumes order by container_path",
+  "describe": {
+    "columns": [
+      {
+        "name": "deployment_id!",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "container_path!",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "volume_name!",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "read_only!: bool",
+        "ordinal": 3,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "f193f210d5a8fa6579999d6b72e45c5649fbf1b7822c36178d32bef82dbd12d0"
+}

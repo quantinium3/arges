@@ -13,7 +13,7 @@ use tower_http::{
 use tracing::Level;
 
 use crate::{
-    handler::{health, packages, parameters, proxy, services, sysinfo, version},
+    handler::{deployments, health, packages, parameters, proxy, services, sysinfo, version},
     state::AppState,
     utils::api_response::{ApiError, ApiResponse, ApiResult},
 };
@@ -51,7 +51,29 @@ pub fn routes(state: AppState) -> Router {
         )
         .route("/{id}/enable", post(proxy::enable_proxy_host))
         .route("/{id}/disable", post(proxy::disable_proxy_host));
+    let deployment_router = Router::new()
+        .route(
+            "/",
+            get(deployments::list_deployments).post(deployments::create_deployment),
+        )
+        .route(
+            "/{id}",
+            get(deployments::get_deployment)
+                .put(deployments::update_deployment)
+                .delete(deployments::delete_deployment),
+        )
+        .route(
+            "/{id}/release",
+            get(deployments::list_releases).post(deployments::register_release),
+        )
+        .route(
+            "/{id}/rollback/{release_id}",
+            post(deployments::rollback_deployment),
+        )
+        .route("/{id}/start", post(deployments::start_deployment))
+        .route("/{id}/stop", post(deployments::stop_deployment));
     let api_router = Router::new()
+        .nest("/deployment", deployment_router)
         .nest("/proxy", proxy_router)
         .nest("/service", service_router)
         .nest("/package", package_router)

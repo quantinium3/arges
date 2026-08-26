@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "delete from port_allocations where deployment_id = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "13f04148ab7cd14ea7b8cfe76dc5ea320c12a1b1838706f8db76ea7daf84e9b9"
+}

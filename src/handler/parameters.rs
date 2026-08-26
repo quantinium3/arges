@@ -279,6 +279,9 @@ mod tests {
                 caddy: crate::infra::proxy::admin::CaddyAdmin::new(
                     crate::constants::CADDY_ADMIN_URL,
                 ),
+                registry: crate::infra::containers::registry::RegistryClient::new(
+                    crate::constants::REGISTRY_URL,
+                ),
             };
 
             Self {
