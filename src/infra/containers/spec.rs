@@ -1,12 +1,14 @@
 use std::net::{IpAddr, Ipv4Addr};
 
 use bollard::models::{
-    ContainerCreateBody, HostConfig, PortBinding, RestartPolicy as BollardRestartPolicy,
-    RestartPolicyNameEnum,
+    ContainerCreateBody, HostConfig, HostConfigLogConfig, PortBinding,
+    RestartPolicy as BollardRestartPolicy, RestartPolicyNameEnum,
 };
 use std::collections::HashMap;
 
 pub const LOOPBACK: IpAddr = IpAddr::V4(Ipv4Addr::LOCALHOST);
+pub const LOG_MAX_SIZE: &str = "10m";
+pub const LOG_MAX_FILES: &str = "3";
 pub const ALL_INTERFACES: IpAddr = IpAddr::V4(Ipv4Addr::UNSPECIFIED);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -197,6 +199,17 @@ impl ContainerSpec {
         keys
     }
 
+    fn log_config() -> HostConfigLogConfig {
+        let mut config = HashMap::new();
+        config.insert("max-size".to_string(), LOG_MAX_SIZE.to_string());
+        config.insert("max-file".to_string(), LOG_MAX_FILES.to_string());
+
+        HostConfigLogConfig {
+            typ: Some("json-file".to_string()),
+            config: Some(config),
+        }
+    }
+
     pub fn bind_specs(&self) -> Vec<String> {
         let mut binds: Vec<String> = self.volumes.iter().map(VolumeMount::to_bind).collect();
         binds.sort();
@@ -227,6 +240,7 @@ impl ContainerSpec {
                 binds: (!self.volumes.is_empty())
                     .then(|| self.volumes.iter().map(VolumeMount::to_bind).collect()),
                 restart_policy: Some(self.restart.into()),
+                log_config: Some(Self::log_config()),
                 memory: self.memory_limit_mb.map(|mb| mb * 1024 * 1024),
                 cpu_shares: self.cpu_shares,
                 ..Default::default()
@@ -286,6 +300,31 @@ mod tests {
         let mut exposed = body.exposed_ports.clone().unwrap();
         exposed.sort();
         assert_eq!(exposed, vec!["443/tcp".to_string(), "80/tcp".to_string()]);
+    }
+
+    #[test]
+    fn every_container_gets_bounded_log_files() {
+        let body = ContainerSpec::new("app", "nginx").to_create_body();
+        let log = body
+            .host_config
+            .as_ref()
+            .unwrap()
+            .log_config
+            .as_ref()
+            .unwrap();
+
+        assert_eq!(log.typ.as_deref(), Some("json-file"));
+
+        let config = log.config.as_ref().unwrap();
+        assert_eq!(
+            config.get("max-size").map(String::as_str),
+            Some(LOG_MAX_SIZE)
+        );
+        assert_eq!(
+            config.get("max-file").map(String::as_str),
+            Some(LOG_MAX_FILES),
+            "without a file cap json-file grows until the disk is full"
+        );
     }
 
     #[test]

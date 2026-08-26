@@ -12,8 +12,6 @@ pub const REGISTRY_PORT: u16 = 5000;
 pub const REGISTRY_DATA_VOLUME: &str = "arges-registry-data";
 pub const REGISTRY_URL: &str = "http://127.0.0.1:5000";
 
-pub const MAX_CONTAINER_LOG_BYTES: usize = 256 * 1024;
-
 pub const CADDY_CONTAINER_NAME: &str = "arges-caddy";
 pub const CADDY_IMAGE: &str = "caddy:2-alpine";
 pub const CADDY_HTTP_PORT: u16 = 80;

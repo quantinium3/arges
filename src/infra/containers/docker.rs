@@ -19,10 +19,7 @@ use bollard::{
 };
 use futures_util::TryStreamExt;
 
-use crate::{
-    constants::MAX_CONTAINER_LOG_BYTES,
-    infra::containers::spec::{ContainerSpec, Protocol},
-};
+use crate::infra::containers::spec::{ContainerSpec, Protocol};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ImageHealth {
@@ -373,30 +370,26 @@ impl DockerClient {
         Ok(())
     }
 
-    pub async fn logs(&self, container: &str, tail: i64) -> Result<String> {
+    pub fn follow_logs(
+        &self,
+        container: &str,
+        tail: i64,
+    ) -> impl futures_util::Stream<Item = Result<String>> + use<> {
         let options = LogsOptionsBuilder::default()
             .stdout(true)
             .stderr(true)
+            .follow(true)
+            .timestamps(false)
             .tail(&tail.to_string())
             .build();
 
-        let mut stream = self.0.logs(container, Some(options));
-        let mut buffer: Vec<u8> = Vec::new();
+        let stream = self.0.logs(container, Some(options));
 
-        while let Some(chunk) = stream
-            .try_next()
-            .await
-            .with_context(|| format!("failed to read logs for container {container}"))?
-        {
-            buffer.extend_from_slice(&chunk.into_bytes());
-
-            if buffer.len() > MAX_CONTAINER_LOG_BYTES {
-                let cut = buffer.len() - MAX_CONTAINER_LOG_BYTES;
-                buffer.drain(..cut);
-            }
-        }
-
-        Ok(String::from_utf8_lossy(&buffer).into_owned())
+        futures_util::StreamExt::map(stream, |chunk| {
+            chunk
+                .map(|output| String::from_utf8_lossy(&output.into_bytes()).into_owned())
+                .context("the container log stream ended unexpectedly")
+        })
     }
 
     pub async fn stop_and_remove(&self, container: &str) -> Result<()> {
@@ -454,6 +447,75 @@ mod tests {
             ip: None,
             health: ImageHealth::None,
         }
+    }
+
+    #[tokio::test]
+    async fn logs_stream_live_lines_as_they_are_written() {
+        if std::env::var("ARGES_DOCKER_LAB").is_err() {
+            return;
+        }
+
+        use futures_util::StreamExt;
+        use std::time::{Duration, Instant};
+
+        let docker = DockerClient::connect().await.unwrap();
+        let _ = docker.stop_and_remove("log-lab").await;
+
+        docker.pull_image("alpine:3").await.unwrap();
+        docker
+            .create_raw(
+                "log-lab",
+                bollard::models::ContainerCreateBody {
+                    image: Some("alpine:3".to_string()),
+                    cmd: Some(vec![
+                        "sh".to_string(),
+                        "-c".to_string(),
+                        "echo backlog-1; echo backlog-2; for i in 1 2 3; do sleep 1; echo live-$i; done"
+                            .to_string(),
+                    ]),
+                    ..Default::default()
+                },
+            )
+            .await
+            .unwrap();
+
+        tokio::time::sleep(Duration::from_millis(600)).await;
+
+        let started = Instant::now();
+        let mut stream = Box::pin(docker.follow_logs("log-lab", 100));
+        let mut seen: Vec<(String, u128)> = Vec::new();
+
+        while let Ok(Some(chunk)) =
+            tokio::time::timeout(Duration::from_secs(6), stream.next()).await
+        {
+            let chunk = chunk.unwrap();
+            for line in chunk.lines().filter(|l| !l.trim().is_empty()) {
+                seen.push((line.trim().to_string(), started.elapsed().as_millis()));
+            }
+            if seen.iter().any(|(l, _)| l == "live-3") {
+                break;
+            }
+        }
+
+        let names: Vec<&str> = seen.iter().map(|(l, _)| l.as_str()).collect();
+        assert_eq!(
+            names,
+            vec!["backlog-1", "backlog-2", "live-1", "live-2", "live-3"],
+            "tail must replay the backlog then keep following"
+        );
+
+        let backlog_at = seen[1].1;
+        let last_at = seen[4].1;
+        assert!(
+            backlog_at < 500,
+            "the backlog must arrive immediately, took {backlog_at}ms"
+        );
+        assert!(
+            last_at > 1500,
+            "live lines must arrive as written, not buffered to the end (last at {last_at}ms)"
+        );
+
+        docker.stop_and_remove("log-lab").await.unwrap();
     }
 
     #[test]
