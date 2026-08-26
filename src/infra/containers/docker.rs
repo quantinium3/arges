@@ -12,8 +12,8 @@ use bollard::{
     models::NetworkCreateRequest,
     query_parameters::{
         CreateContainerOptionsBuilder, CreateImageOptionsBuilder, InspectContainerOptionsBuilder,
-        ListNetworksOptionsBuilder, LogsOptionsBuilder, RemoveContainerOptionsBuilder,
-        StopContainerOptionsBuilder,
+        ListContainersOptionsBuilder, ListNetworksOptionsBuilder, LogsOptionsBuilder,
+        RemoveContainerOptionsBuilder, StopContainerOptionsBuilder,
     },
 };
 use futures_util::TryStreamExt;
@@ -260,6 +260,30 @@ impl DockerClient {
         }
 
         Ok(response.id)
+    }
+
+    pub async fn list_by_label(&self, label: &str, value: &str) -> Result<Vec<String>> {
+        let mut filters = HashMap::new();
+        let selector = format!("{label}={value}");
+        filters.insert("label", vec![selector.as_str()]);
+
+        let options = ListContainersOptionsBuilder::default()
+            .all(true)
+            .filters(&filters)
+            .build();
+
+        let containers = self
+            .0
+            .list_containers(Some(options))
+            .await
+            .with_context(|| format!("failed to list containers labelled {label}={value}"))?;
+
+        Ok(containers
+            .into_iter()
+            .filter_map(|c| c.names)
+            .flatten()
+            .map(|name| name.trim_start_matches('/').to_string())
+            .collect())
     }
 
     pub async fn create_raw(

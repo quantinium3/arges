@@ -94,7 +94,10 @@ pub struct ContainerSpec {
     pub ports: Vec<PortMapping>,
     pub volumes: Vec<VolumeMount>,
     pub env: Vec<String>,
+    pub labels: HashMap<String, String>,
     pub restart: RestartPolicy,
+    pub memory_limit_mb: Option<i64>,
+    pub cpu_shares: Option<i64>,
 }
 
 impl ContainerSpec {
@@ -106,7 +109,10 @@ impl ContainerSpec {
             ports: Vec::new(),
             volumes: Vec::new(),
             env: Vec::new(),
+            labels: HashMap::new(),
             restart: RestartPolicy::No,
+            memory_limit_mb: None,
+            cpu_shares: None,
         }
     }
 
@@ -164,6 +170,26 @@ impl ContainerSpec {
         self
     }
 
+    pub fn label(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
+        self.labels.insert(key.into(), value.into());
+        self
+    }
+
+    pub fn limits(mut self, memory_limit_mb: Option<i64>, cpu_shares: Option<i64>) -> Self {
+        self.memory_limit_mb = memory_limit_mb;
+        self.cpu_shares = cpu_shares;
+        self
+    }
+
+    pub fn volume_ro(mut self, source: impl Into<String>, target: impl Into<String>) -> Self {
+        self.volumes.push(VolumeMount {
+            source: source.into(),
+            target: target.into(),
+            read_only: true,
+        });
+        self
+    }
+
     pub fn published_keys(&self) -> Vec<String> {
         let mut keys: Vec<String> = self.ports.iter().map(PortMapping::key).collect();
         keys.sort();
@@ -193,6 +219,7 @@ impl ContainerSpec {
         ContainerCreateBody {
             image: Some(self.image.clone()),
             env: Some(self.env.clone()),
+            labels: (!self.labels.is_empty()).then(|| self.labels.clone()),
             exposed_ports: (!exposed_ports.is_empty()).then_some(exposed_ports),
             host_config: Some(HostConfig {
                 network_mode: self.network.clone(),
@@ -200,6 +227,8 @@ impl ContainerSpec {
                 binds: (!self.volumes.is_empty())
                     .then(|| self.volumes.iter().map(VolumeMount::to_bind).collect()),
                 restart_policy: Some(self.restart.into()),
+                memory: self.memory_limit_mb.map(|mb| mb * 1024 * 1024),
+                cpu_shares: self.cpu_shares,
                 ..Default::default()
             }),
             ..Default::default()

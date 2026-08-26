@@ -390,6 +390,7 @@ mod tests {
                 db: pool,
                 package_manager: PackageManager::APT,
                 reconcile_notify: Arc::new(Notify::new()),
+                deploy_notify: Arc::new(Notify::new()),
                 master_key: Arc::new(MasterKey::load(&path).await.unwrap()),
                 docker: None,
                 caddy: CaddyAdmin::new(CADDY_ADMIN_URL),

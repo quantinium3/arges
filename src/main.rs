@@ -20,6 +20,7 @@ use crate::{
             registry::RegistryClient,
             services::{self, ServiceId},
         },
+        deployments::reconciler as deployment_reconciler,
         packages::{catalog, package_manager::PackageManager, reconciler},
         parameters::secrets::MasterKey,
         proxy::{admin::CaddyAdmin, reconciler as proxy_reconciler},
@@ -56,9 +57,11 @@ async fn main() -> Result<()> {
     let listener = bind_socket(&socket_path)?;
     let socket_identity = socket_identity(&socket_path)?;
 
-    let master_key = MasterKey::load(&config.master_key_path)
-        .await
-        .context("failed to load the master key")?;
+    let master_key = Arc::new(
+        MasterKey::load(&config.master_key_path)
+            .await
+            .context("failed to load the master key")?,
+    );
 
     let db_url = format!("sqlite://{}", config.db_path.display());
     let pool = db::pool::connect(&db_url).await?;
@@ -78,6 +81,17 @@ async fn main() -> Result<()> {
     let registry = RegistryClient::new(constants::REGISTRY_URL);
     apply_proxy_config(&pool, &master_key, &caddy).await;
 
+    let deploy_notify = Arc::new(Notify::new());
+    if let Some(docker) = &docker {
+        deployment_reconciler::init(
+            pool.clone(),
+            master_key.clone(),
+            docker.clone(),
+            caddy.clone(),
+            deploy_notify.clone(),
+        );
+    }
+
     let reconcile_notify = Arc::new(Notify::new());
     reconciler::init(&pool, reconcile_notify.clone(), package_manager).await?;
 
@@ -85,7 +99,8 @@ async fn main() -> Result<()> {
         db: pool,
         package_manager,
         reconcile_notify,
-        master_key: Arc::new(master_key),
+        deploy_notify,
+        master_key,
         docker,
         caddy,
         registry,

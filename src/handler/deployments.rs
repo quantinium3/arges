@@ -361,6 +361,7 @@ pub async fn register_release(
         deployments::set_desired_release(&state.db, &id, &release_id)
             .await
             .map_err(ApiError::internal)?;
+        state.deploy_notify.notify_one();
     }
 
     audit::record(
@@ -409,6 +410,8 @@ async fn set_state(
     audit::record(&state.db, SUBJECT, Some(id), action, None)
         .await
         .map_err(ApiError::internal)?;
+
+    state.deploy_notify.notify_one();
 
     Ok(ApiResponse::ok(
         load(&state, id).await?,
@@ -461,6 +464,8 @@ pub async fn rollback_deployment(
     )
     .await
     .map_err(ApiError::internal)?;
+
+    state.deploy_notify.notify_one();
 
     Ok(ApiResponse::ok(load(&state, &id).await?, "rollback queued"))
 }
@@ -518,6 +523,7 @@ mod tests {
                 db: pool,
                 package_manager: PackageManager::APT,
                 reconcile_notify: Arc::new(Notify::new()),
+                deploy_notify: Arc::new(Notify::new()),
                 master_key: Arc::new(MasterKey::load(&path).await.unwrap()),
                 docker: None,
                 caddy: CaddyAdmin::new(CADDY_ADMIN_URL),

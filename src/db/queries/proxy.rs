@@ -267,6 +267,20 @@ pub async fn set_enabled(pool: &SqlitePool, id: &str, enabled: bool) -> Result<b
     Ok(result.rows_affected() > 0)
 }
 
+pub async fn set_upstream_container(pool: &SqlitePool, id: &str, container: &str) -> Result<bool> {
+    let result = sqlx::query!(
+        r#"update proxy_hosts set upstream_container = ?2, upstream_host = null,
+            updated_at = unixepoch() where id = ?1"#,
+        id,
+        container
+    )
+    .execute(pool)
+    .await
+    .with_context(|| format!("failed to point proxy host {id} at {container}"))?;
+
+    Ok(result.rows_affected() > 0)
+}
+
 pub async fn delete(pool: &SqlitePool, id: &str) -> Result<bool> {
     let result = sqlx::query!("delete from proxy_hosts where id = ?", id)
         .execute(pool)

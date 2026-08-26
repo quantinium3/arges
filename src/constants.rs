@@ -26,3 +26,6 @@ pub const CADDY_ADMIN_URL: &str = "http://127.0.0.1:2019";
 pub const MAX_PROXY_DOMAIN_LEN: usize = 253;
 
 pub const CADDY_READY_TIMEOUT: Duration = Duration::from_secs(15);
+
+pub const DEPLOYMENT_LABEL: &str = "arges.deployment";
+pub const DEPLOYMENT_RECONCILE_INTERVAL: Duration = Duration::from_secs(60);
