@@ -1,7 +1,11 @@
-use std::env;
+pub mod buffer;
+
+use std::{env, sync::Arc};
 
 use anyhow::{Context, Result, bail};
 use tracing_subscriber::{EnvFilter, prelude::*};
+
+use crate::logging::buffer::{AgentLog, AgentLogLayer};
 
 const DEFAULT_FILTER: &str = "arges=info,tower_http=info";
 
@@ -31,7 +35,7 @@ impl LogFormat {
     }
 }
 
-pub fn init() -> Result<()> {
+pub fn init() -> Result<Arc<AgentLog>> {
     let env_filter = EnvFilter::try_from_default_env()
         .or_else(|_| EnvFilter::try_new(DEFAULT_FILTER))
         .context("failed to configure tracing subscriber")?;
@@ -42,7 +46,10 @@ pub fn init() -> Result<()> {
         Err(e) => return Err(e).context("failed to read ARGES_LOG_FORMAT"),
     };
 
-    let registry = tracing_subscriber::registry().with(env_filter);
+    let agent_log = AgentLog::new();
+    let registry = tracing_subscriber::registry()
+        .with(env_filter)
+        .with(AgentLogLayer::new(agent_log.clone()));
 
     match format {
         LogFormat::Journald => match tracing_journald::layer() {
@@ -56,7 +63,7 @@ pub fn init() -> Result<()> {
         LogFormat::Text => registry.with(tracing_subscriber::fmt::layer()).init(),
     }
 
-    Ok(())
+    Ok(agent_log)
 }
 
 fn json_layer<S>() -> impl tracing_subscriber::Layer<S>

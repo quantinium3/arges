@@ -6,10 +6,12 @@ use axum::{
 };
 use futures_util::{Stream, StreamExt};
 use serde::{Deserialize, Serialize};
+use tokio::sync::broadcast::error::RecvError;
 
 use crate::{
     db::queries::deployments,
     infra::containers::{docker::DockerClient, services::ServiceId},
+    logging::buffer::AgentLine,
     state::AppState,
     utils::api_response::ApiError,
 };
@@ -27,6 +29,13 @@ struct ContainerMarker<'a> {
     container: &'a str,
     source: &'a str,
     release: Option<&'a str>,
+}
+
+#[derive(Serialize)]
+struct AgentMarker<'a> {
+    source: &'a str,
+    version: &'a str,
+    buffered: usize,
 }
 
 #[derive(Serialize)]
@@ -172,4 +181,54 @@ pub async fn service_logs(
         None,
         tail_of(&query),
     ))
+}
+
+fn agent_event(line: &AgentLine) -> Event {
+    Event::default()
+        .event("line")
+        .data(serde_json::to_string(line).unwrap_or_default())
+}
+
+pub async fn agent_logs(
+    State(state): State<AppState>,
+    Query(query): Query<LogQuery>,
+) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
+    let tail = tail_of(&query) as usize;
+    let backlog = state.agent_log.recent(tail);
+    let receiver = state.agent_log.subscribe();
+
+    let marker = Event::default().event("agent").data(
+        serde_json::to_string(&AgentMarker {
+            source: "arges",
+            version: env!("CARGO_PKG_VERSION"),
+            buffered: backlog.len(),
+        })
+        .unwrap_or_default(),
+    );
+
+    let replay = futures_util::stream::iter(
+        backlog
+            .iter()
+            .map(|line| Ok(agent_event(line)))
+            .collect::<Vec<_>>(),
+    );
+
+    let live = futures_util::stream::unfold(receiver, |mut rx| async move {
+        match rx.recv().await {
+            Ok(line) => Some((Ok(agent_event(&line)), rx)),
+            Err(RecvError::Lagged(missed)) => Some((
+                Ok(Event::default().event("lagged").data(format!(
+                    "{missed} lines were dropped, the client fell behind"
+                ))),
+                rx,
+            )),
+            Err(RecvError::Closed) => None,
+        }
+    });
+
+    let body = futures_util::stream::once(async move { Ok(marker) })
+        .chain(replay)
+        .chain(live);
+
+    Sse::new(body).keep_alive(KeepAlive::default())
 }

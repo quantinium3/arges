@@ -81,6 +81,7 @@ pub fn routes(state: AppState) -> Router {
         .nest("/service", service_router)
         .nest("/package", package_router)
         .nest("/parameter", parameter_router)
+        .route("/agent/logs", get(logs::agent_logs))
         .route("/health", get(health::get_health))
         .route("/sysinfo", get(sysinfo::get_sysinfo))
         .route("/version", get(version::get_version));

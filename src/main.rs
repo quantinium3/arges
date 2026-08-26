@@ -45,7 +45,7 @@ type SocketIdentity = (u64, u64);
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    logging::init()?;
+    let agent_log = logging::init()?;
 
     let config = Config::new()?;
     let socket_path = config.socket_path;
@@ -108,6 +108,7 @@ async fn main() -> Result<()> {
         reconcile_notify,
         deploy_notify,
         retention_notify,
+        agent_log,
         master_key,
         docker,
         caddy,
