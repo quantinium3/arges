@@ -8,6 +8,7 @@ use anyhow::{Context, Result, bail};
 use bollard::{
     Docker,
     errors::Error,
+    models::HealthStatusEnum,
     models::NetworkCreateRequest,
     query_parameters::{
         CreateContainerOptionsBuilder, CreateImageOptionsBuilder, InspectContainerOptionsBuilder,
@@ -22,6 +23,14 @@ use crate::{
     infra::containers::spec::{ContainerSpec, Protocol},
 };
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ImageHealth {
+    None,
+    Starting,
+    Healthy,
+    Unhealthy,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ContainerStatus {
     pub running: bool,
@@ -29,6 +38,8 @@ pub struct ContainerStatus {
     pub published: Vec<String>,
     pub binds: Vec<String>,
     pub env: Vec<String>,
+    pub ip: Option<String>,
+    pub health: ImageHealth,
 }
 
 #[derive(Clone)]
@@ -52,6 +63,20 @@ fn is_conflict(error: &Error) -> bool {
             ..
         }
     )
+}
+
+fn tagged(image: &str) -> String {
+    if image.contains('@') {
+        return image.to_string();
+    }
+
+    let name = image.rsplit('/').next().unwrap_or(image);
+
+    if name.contains(':') {
+        image.to_string()
+    } else {
+        format!("{image}:latest")
+    }
 }
 
 fn spec_matches(spec: &ContainerSpec, status: &ContainerStatus) -> bool {
@@ -105,8 +130,9 @@ impl DockerClient {
     }
 
     pub async fn pull_image(&self, image: &str) -> Result<()> {
+        let reference = tagged(image);
         let options = CreateImageOptionsBuilder::default()
-            .from_image(image)
+            .from_image(&reference)
             .build();
 
         let mut stream = self.0.create_image(Some(options), None, None);
@@ -168,9 +194,11 @@ impl DockerClient {
             Ok(response) => {
                 let state = response.state.unwrap_or_default();
 
-                let mut published: Vec<String> = response
-                    .network_settings
-                    .and_then(|settings| settings.ports)
+                let network_settings = response.network_settings.unwrap_or_default();
+
+                let mut published: Vec<String> = network_settings
+                    .ports
+                    .clone()
                     .unwrap_or_default()
                     .into_iter()
                     .filter(|(_, bindings)| bindings.as_ref().is_some_and(|b| !b.is_empty()))
@@ -185,12 +213,27 @@ impl DockerClient {
 
                 let env = response.config.unwrap_or_default().env.unwrap_or_default();
 
+                let health = match state.health.as_ref().and_then(|h| h.status) {
+                    Some(HealthStatusEnum::STARTING) => ImageHealth::Starting,
+                    Some(HealthStatusEnum::HEALTHY) => ImageHealth::Healthy,
+                    Some(HealthStatusEnum::UNHEALTHY) => ImageHealth::Unhealthy,
+                    _ => ImageHealth::None,
+                };
+
+                let ip = network_settings
+                    .networks
+                    .unwrap_or_default()
+                    .into_values()
+                    .find_map(|network| network.ip_address.filter(|ip| !ip.is_empty()));
+
                 Ok(Some(ContainerStatus {
                     running: state.running.unwrap_or(false),
                     exit_code: state.exit_code,
                     published,
                     binds,
                     env,
+                    ip,
+                    health,
                 }))
             }
             Err(e) if is_not_found(&e) => Ok(None),
@@ -217,6 +260,21 @@ impl DockerClient {
         }
 
         Ok(response.id)
+    }
+
+    pub async fn create_raw(
+        &self,
+        name: &str,
+        body: bollard::models::ContainerCreateBody,
+    ) -> Result<()> {
+        let options = CreateContainerOptionsBuilder::default().name(name).build();
+
+        self.0
+            .create_container(Some(options), body)
+            .await
+            .with_context(|| format!("failed to create container {name}"))?;
+
+        self.start(name).await
     }
 
     pub async fn start(&self, name: &str) -> Result<()> {
@@ -322,7 +380,33 @@ mod tests {
             published: spec.published_keys(),
             binds: spec.bind_specs(),
             env: spec.env.clone(),
+            ip: None,
+            health: ImageHealth::None,
         }
+    }
+
+    #[test]
+    fn an_untagged_image_is_pinned_to_latest() {
+        assert_eq!(tagged("nginx"), "nginx:latest");
+        assert_eq!(tagged("traefik/whoami"), "traefik/whoami:latest");
+    }
+
+    #[test]
+    fn an_explicit_tag_is_left_alone() {
+        assert_eq!(tagged("nginx:alpine"), "nginx:alpine");
+        assert_eq!(tagged("caddy:2-alpine"), "caddy:2-alpine");
+    }
+
+    #[test]
+    fn a_registry_port_is_not_mistaken_for_a_tag() {
+        assert_eq!(tagged("localhost:5000/app"), "localhost:5000/app:latest");
+        assert_eq!(tagged("localhost:5000/app:v1"), "localhost:5000/app:v1");
+    }
+
+    #[test]
+    fn a_digest_reference_is_left_alone() {
+        let by_digest = "localhost:5000/app@sha256:abc123";
+        assert_eq!(tagged(by_digest), by_digest);
     }
 
     #[test]
