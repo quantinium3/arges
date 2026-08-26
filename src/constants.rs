@@ -9,6 +9,7 @@ pub const CONTAINER_NETWORK_NAME: &str = "arges";
 pub const REGISTRY_CONTAINER_NAME: &str = "arges-registry";
 pub const REGISTRY_IMAGE: &str = "registry:2";
 pub const REGISTRY_PORT: u16 = 5000;
+pub const REGISTRY_DATA_VOLUME: &str = "arges-registry-data";
 
 pub const MAX_CONTAINER_LOG_BYTES: usize = 256 * 1024;
 

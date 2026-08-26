@@ -77,7 +77,7 @@ pub struct VolumeMount {
 }
 
 impl VolumeMount {
-    fn to_bind(&self) -> String {
+    pub fn to_bind(&self) -> String {
         if self.read_only {
             format!("{}:{}:ro", self.source, self.target)
         } else {
@@ -169,6 +169,12 @@ impl ContainerSpec {
         keys.sort();
         keys.dedup();
         keys
+    }
+
+    pub fn bind_specs(&self) -> Vec<String> {
+        let mut binds: Vec<String> = self.volumes.iter().map(VolumeMount::to_bind).collect();
+        binds.sort();
+        binds
     }
 
     pub fn to_create_body(&self) -> ContainerCreateBody {

@@ -27,6 +27,8 @@ pub struct ContainerStatus {
     pub running: bool,
     pub exit_code: Option<i64>,
     pub published: Vec<String>,
+    pub binds: Vec<String>,
+    pub env: Vec<String>,
 }
 
 #[derive(Clone)]
@@ -50,6 +52,18 @@ fn is_conflict(error: &Error) -> bool {
             ..
         }
     )
+}
+
+fn spec_matches(spec: &ContainerSpec, status: &ContainerStatus) -> bool {
+    if status.published != spec.published_keys() {
+        return false;
+    }
+
+    if status.binds != spec.bind_specs() {
+        return false;
+    }
+
+    spec.env.iter().all(|wanted| status.env.contains(wanted))
 }
 
 fn ensure_host_ports_free(spec: &ContainerSpec) -> Result<()> {
@@ -165,10 +179,18 @@ impl DockerClient {
                 published.sort();
                 published.dedup();
 
+                let host_config = response.host_config.unwrap_or_default();
+                let mut binds = host_config.binds.unwrap_or_default();
+                binds.sort();
+
+                let env = response.config.unwrap_or_default().env.unwrap_or_default();
+
                 Ok(Some(ContainerStatus {
                     running: state.running.unwrap_or(false),
                     exit_code: state.exit_code,
                     published,
+                    binds,
+                    env,
                 }))
             }
             Err(e) if is_not_found(&e) => Ok(None),
@@ -206,10 +228,8 @@ impl DockerClient {
     }
 
     pub async fn ensure_running(&self, spec: &ContainerSpec) -> Result<()> {
-        let expected = spec.published_keys();
-
         if let Some(status) = self.inspect(&spec.name).await? {
-            if status.running && status.published == expected {
+            if status.running && spec_matches(spec, &status) {
                 return Ok(());
             }
 
@@ -292,6 +312,59 @@ mod tests {
             ContainerSpec::new("app", "nginx")
                 .published_keys()
                 .is_empty()
+        );
+    }
+
+    fn status_for(spec: &ContainerSpec) -> ContainerStatus {
+        ContainerStatus {
+            running: true,
+            exit_code: None,
+            published: spec.published_keys(),
+            binds: spec.bind_specs(),
+            env: spec.env.clone(),
+        }
+    }
+
+    #[test]
+    fn a_container_matching_its_spec_is_left_alone() {
+        let spec = ContainerSpec::new("app", "nginx")
+            .port(80, 8080)
+            .volume("data", "/data")
+            .env(vec!["A=1".to_string()]);
+
+        assert!(spec_matches(&spec, &status_for(&spec)));
+    }
+
+    #[test]
+    fn a_missing_volume_counts_as_drift() {
+        let spec = ContainerSpec::new("app", "nginx").volume("data", "/data");
+        let mut status = status_for(&spec);
+        status.binds.clear();
+
+        assert!(
+            !spec_matches(&spec, &status),
+            "a container running without its volume must be recreated"
+        );
+    }
+
+    #[test]
+    fn a_missing_env_var_counts_as_drift() {
+        let spec = ContainerSpec::new("app", "nginx").env(vec!["WANTED=1".to_string()]);
+        let mut status = status_for(&spec);
+        status.env = vec!["OTHER=2".to_string()];
+
+        assert!(!spec_matches(&spec, &status));
+    }
+
+    #[test]
+    fn extra_env_from_the_image_is_not_drift() {
+        let spec = ContainerSpec::new("app", "nginx").env(vec!["WANTED=1".to_string()]);
+        let mut status = status_for(&spec);
+        status.env.push("PATH=/usr/bin".to_string());
+
+        assert!(
+            spec_matches(&spec, &status),
+            "images set their own env; only the spec's vars must be present"
         );
     }
 

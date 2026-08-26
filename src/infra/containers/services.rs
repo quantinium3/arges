@@ -6,7 +6,7 @@ use crate::{
     constants::{
         CADDY_ADMIN_PORT, CADDY_CONFIG_VOLUME, CADDY_CONTAINER_NAME, CADDY_DATA_VOLUME,
         CADDY_HTTP_PORT, CADDY_HTTPS_PORT, CADDY_IMAGE, CONTAINER_NETWORK_NAME,
-        REGISTRY_CONTAINER_NAME, REGISTRY_IMAGE, REGISTRY_PORT,
+        REGISTRY_CONTAINER_NAME, REGISTRY_DATA_VOLUME, REGISTRY_IMAGE, REGISTRY_PORT,
     },
     db::queries::settings,
     infra::containers::{
@@ -74,6 +74,8 @@ pub fn registry_spec() -> ContainerSpec {
     ContainerSpec::new(REGISTRY_CONTAINER_NAME, REGISTRY_IMAGE)
         .network(CONTAINER_NETWORK_NAME)
         .port(REGISTRY_PORT, REGISTRY_PORT)
+        .env(vec!["REGISTRY_STORAGE_DELETE_ENABLED=true".to_string()])
+        .volume(REGISTRY_DATA_VOLUME, "/var/lib/registry")
         .restart(RestartPolicy::Always)
 }
 
@@ -196,6 +198,26 @@ mod tests {
 
         assert!(keys.contains(&"443/tcp".to_string()));
         assert!(keys.contains(&"443/udp".to_string()));
+    }
+
+    #[test]
+    fn the_registry_keeps_its_images_across_recreates() {
+        let spec = registry_spec();
+
+        assert!(
+            spec.volumes.iter().any(|v| v.target == "/var/lib/registry"),
+            "the registry is the artifact store; without a volume a recreate destroys every image"
+        );
+    }
+
+    #[test]
+    fn the_registry_allows_deletes_so_retention_can_prune() {
+        assert!(
+            registry_spec()
+                .env
+                .iter()
+                .any(|e| e == "REGISTRY_STORAGE_DELETE_ENABLED=true")
+        );
     }
 
     #[test]
