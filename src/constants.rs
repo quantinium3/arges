@@ -29,3 +29,5 @@ pub const DEPLOYMENT_LABEL: &str = "arges.deployment";
 pub const DEPLOYMENT_RECONCILE_INTERVAL: Duration = Duration::from_secs(60);
 
 pub const RETENTION_INTERVAL: Duration = Duration::from_secs(6 * 60 * 60);
+
+pub const DEFAULT_JOURNAL_UNIT: &str = "arges.service";

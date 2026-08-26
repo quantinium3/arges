@@ -14,6 +14,7 @@ use crate::{
     logging::buffer::AgentLine,
     state::AppState,
     utils::api_response::ApiError,
+    utils::api_response::ApiResponse,
 };
 
 const DEFAULT_TAIL: i64 = 200;
@@ -22,6 +23,12 @@ const MAX_TAIL: i64 = 5000;
 #[derive(Deserialize)]
 pub struct LogQuery {
     pub tail: Option<i64>,
+}
+
+#[derive(Deserialize)]
+pub struct HistoryQuery {
+    pub tail: Option<i64>,
+    pub since: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -231,4 +238,23 @@ pub async fn agent_logs(
         .chain(live);
 
     Sse::new(body).keep_alive(KeepAlive::default())
+}
+
+pub async fn agent_log_history(
+    State(state): State<AppState>,
+    Query(query): Query<HistoryQuery>,
+) -> Result<ApiResponse<Vec<AgentLine>>, ApiError> {
+    if !state.journal.available().await {
+        return Err(ApiError::unavailable(
+            "journalctl is not available on this host, only the live buffer is readable",
+        ));
+    }
+
+    let lines = state
+        .journal
+        .history(query.tail.unwrap_or(500), query.since.as_deref())
+        .await
+        .map_err(|e| ApiError::bad_request(format!("{}", e.root_cause())))?;
+
+    Ok(ApiResponse::ok(lines, "agent log history fetched"))
 }

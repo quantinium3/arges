@@ -9,7 +9,7 @@ use crate::infra::{
     parameters::secrets::MasterKey,
     proxy::admin::CaddyAdmin,
 };
-use crate::logging::buffer::AgentLog;
+use crate::logging::{buffer::AgentLog, journal::JournalReader};
 
 #[derive(Clone)]
 pub struct AppState {
@@ -19,6 +19,7 @@ pub struct AppState {
     pub deploy_notify: Arc<Notify>,
     pub retention_notify: Arc<Notify>,
     pub agent_log: Arc<AgentLog>,
+    pub journal: Arc<JournalReader>,
     pub master_key: Arc<MasterKey>,
     pub docker: Option<DockerClient>,
     pub caddy: CaddyAdmin,

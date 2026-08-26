@@ -109,6 +109,7 @@ async fn main() -> Result<()> {
         deploy_notify,
         retention_notify,
         agent_log,
+        journal: Arc::new(logging::journal::JournalReader::new(config.journal_unit)),
         master_key,
         docker,
         caddy,

@@ -553,6 +553,9 @@ mod tests {
                 deploy_notify: Arc::new(Notify::new()),
                 retention_notify: Arc::new(Notify::new()),
                 agent_log: crate::logging::buffer::AgentLog::new(),
+                journal: Arc::new(crate::logging::journal::JournalReader::new(
+                    crate::constants::DEFAULT_JOURNAL_UNIT,
+                )),
                 master_key: Arc::new(MasterKey::load(&path).await.unwrap()),
                 docker: None,
                 caddy: CaddyAdmin::new(CADDY_ADMIN_URL),

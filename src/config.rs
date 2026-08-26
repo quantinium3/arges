@@ -9,6 +9,7 @@ pub struct Config {
     pub socket_path: PathBuf,
     pub db_path: PathBuf,
     pub master_key_path: PathBuf,
+    pub journal_unit: String,
 }
 
 impl Config {
@@ -24,10 +25,14 @@ impl Config {
         let db_path = absolute_path_var("ARGES_DB_PATH")?;
         let master_key_path = absolute_path_var("ARGES_MASTER_KEY_PATH")?;
 
+        let journal_unit = env::var("ARGES_JOURNAL_UNIT")
+            .unwrap_or_else(|_| crate::constants::DEFAULT_JOURNAL_UNIT.to_string());
+
         Ok(Self {
             socket_path,
             db_path,
             master_key_path,
+            journal_unit,
         })
     }
 }
