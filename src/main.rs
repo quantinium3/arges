@@ -21,6 +21,7 @@ use crate::{
             services::{self, ServiceId},
         },
         deployments::{reconciler as deployment_reconciler, retention},
+        metrics::sampler as metrics_sampler,
         packages::{catalog, package_manager::PackageManager, reconciler},
         parameters::secrets::MasterKey,
         proxy::{admin::CaddyAdmin, reconciler as proxy_reconciler},
@@ -98,6 +99,8 @@ async fn main() -> Result<()> {
             deploy_notify.clone(),
         );
     }
+
+    metrics_sampler::init(pool.clone(), docker.clone());
 
     let reconcile_notify = Arc::new(Notify::new());
     reconciler::init(&pool, reconcile_notify.clone(), package_manager).await?;

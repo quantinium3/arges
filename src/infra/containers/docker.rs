@@ -9,12 +9,13 @@ use bollard::{
     Docker,
     errors::Error,
     exec::{CreateExecOptions, StartExecOptions, StartExecResults},
+    models::ContainerStatsResponse,
     models::HealthStatusEnum,
     models::NetworkCreateRequest,
     query_parameters::{
         CreateContainerOptionsBuilder, CreateImageOptionsBuilder, InspectContainerOptionsBuilder,
         ListContainersOptionsBuilder, ListNetworksOptionsBuilder, LogsOptionsBuilder,
-        RemoveContainerOptionsBuilder, StopContainerOptionsBuilder,
+        RemoveContainerOptionsBuilder, StatsOptionsBuilder, StopContainerOptionsBuilder,
     },
 };
 use futures_util::TryStreamExt;
@@ -40,8 +41,100 @@ pub struct ContainerStatus {
     pub health: ImageHealth,
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub struct ContainerUsage {
+    pub cpu_percent: f64,
+    pub memory_used: u64,
+    pub memory_limit: Option<u64>,
+    pub network_rx_total: u64,
+    pub network_tx_total: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LabelledContainer {
+    pub name: String,
+    pub value: String,
+}
+
 #[derive(Clone)]
 pub struct DockerClient(Docker);
+
+fn cpu_percent(stats: &ContainerStatsResponse) -> f64 {
+    let (Some(current), Some(previous)) = (&stats.cpu_stats, &stats.precpu_stats) else {
+        return 0.0;
+    };
+
+    let used = current
+        .cpu_usage
+        .as_ref()
+        .and_then(|usage| usage.total_usage)
+        .unwrap_or(0);
+    let used_before = previous
+        .cpu_usage
+        .as_ref()
+        .and_then(|usage| usage.total_usage)
+        .unwrap_or(0);
+
+    let system = current.system_cpu_usage.unwrap_or(0);
+    let system_before = previous.system_cpu_usage.unwrap_or(0);
+
+    if system_before == 0 {
+        return 0.0;
+    }
+
+    let used_delta = used.saturating_sub(used_before) as f64;
+    let system_delta = system.saturating_sub(system_before) as f64;
+
+    if used_delta <= 0.0 || system_delta <= 0.0 {
+        return 0.0;
+    }
+
+    let cpus = current
+        .online_cpus
+        .filter(|count| *count > 0)
+        .map(u64::from)
+        .or_else(|| {
+            current
+                .cpu_usage
+                .as_ref()
+                .and_then(|usage| usage.percpu_usage.as_ref())
+                .map(|per_cpu| per_cpu.len() as u64)
+        })
+        .unwrap_or(1)
+        .max(1) as f64;
+
+    (used_delta / system_delta) * cpus * 100.0
+}
+
+fn memory_used(stats: &ContainerStatsResponse) -> u64 {
+    let Some(memory) = &stats.memory_stats else {
+        return 0;
+    };
+
+    let usage = memory.usage.unwrap_or(0);
+    let cache = memory
+        .stats
+        .as_ref()
+        .and_then(|stats| stats.get("inactive_file").copied())
+        .unwrap_or(0);
+
+    usage.saturating_sub(cache)
+}
+
+fn network_totals(stats: &ContainerStatsResponse) -> (u64, u64) {
+    stats
+        .networks
+        .as_ref()
+        .map(|networks| {
+            networks.values().fold((0, 0), |(rx, tx), interface| {
+                (
+                    rx + interface.rx_bytes.unwrap_or(0),
+                    tx + interface.tx_bytes.unwrap_or(0),
+                )
+            })
+        })
+        .unwrap_or((0, 0))
+}
 
 fn is_not_found(error: &Error) -> bool {
     matches!(
@@ -284,6 +377,71 @@ impl DockerClient {
             .collect())
     }
 
+    pub async fn running_by_label(&self, label: &str) -> Result<Vec<LabelledContainer>> {
+        let mut filters = HashMap::new();
+        filters.insert("label", vec![label]);
+        filters.insert("status", vec!["running"]);
+
+        let options = ListContainersOptionsBuilder::default()
+            .all(false)
+            .filters(&filters)
+            .build();
+
+        let containers = self
+            .0
+            .list_containers(Some(options))
+            .await
+            .with_context(|| format!("failed to list running containers labelled {label}"))?;
+
+        Ok(containers
+            .into_iter()
+            .filter_map(|container| {
+                let name = container
+                    .names
+                    .as_ref()
+                    .and_then(|names| names.first())
+                    .map(|name| name.trim_start_matches('/').to_string())?;
+                let value = container.labels.as_ref()?.get(label)?.clone();
+
+                Some(LabelledContainer { name, value })
+            })
+            .collect())
+    }
+
+    pub async fn usage(&self, container: &str) -> Result<Option<ContainerUsage>> {
+        let options = StatsOptionsBuilder::default()
+            .stream(false)
+            .one_shot(false)
+            .build();
+
+        let stats = match futures_util::StreamExt::next(&mut Box::pin(
+            self.0.stats(container, Some(options)),
+        ))
+        .await
+        {
+            Some(Ok(stats)) => stats,
+            Some(Err(e)) if is_not_found(&e) => return Ok(None),
+            Some(Err(e)) => {
+                return Err(e).with_context(|| format!("failed to read stats for {container}"));
+            }
+            None => return Ok(None),
+        };
+
+        let (network_rx_total, network_tx_total) = network_totals(&stats);
+
+        Ok(Some(ContainerUsage {
+            cpu_percent: cpu_percent(&stats).max(0.0),
+            memory_used: memory_used(&stats),
+            memory_limit: stats
+                .memory_stats
+                .as_ref()
+                .and_then(|memory| memory.limit)
+                .filter(|limit| *limit > 0),
+            network_rx_total,
+            network_tx_total,
+        }))
+    }
+
     pub async fn exec(&self, container: &str, command: &[&str]) -> Result<String> {
         let config = CreateExecOptions {
             cmd: Some(command.iter().map(|c| c.to_string()).collect()),
@@ -410,6 +568,132 @@ impl DockerClient {
             Err(e) if is_not_found(&e) => Ok(()),
             Err(e) => Err(e).with_context(|| format!("failed to remove container {container}")),
         }
+    }
+}
+
+#[cfg(test)]
+mod stats_tests {
+    use super::*;
+    use bollard::models::{
+        ContainerCpuStats, ContainerCpuUsage, ContainerMemoryStats, ContainerNetworkStats,
+    };
+    use std::collections::HashMap;
+
+    fn cpu(total: u64, system: u64, cpus: u32) -> ContainerCpuStats {
+        ContainerCpuStats {
+            cpu_usage: Some(ContainerCpuUsage {
+                total_usage: Some(total),
+                ..Default::default()
+            }),
+            system_cpu_usage: Some(system),
+            online_cpus: Some(cpus),
+            ..Default::default()
+        }
+    }
+
+    fn stats(current: ContainerCpuStats, previous: ContainerCpuStats) -> ContainerStatsResponse {
+        ContainerStatsResponse {
+            cpu_stats: Some(current),
+            precpu_stats: Some(previous),
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn a_container_saturating_one_of_four_cores_reports_a_full_core() {
+        let sample = stats(cpu(100, 1_400, 4), cpu(0, 1_000, 4));
+
+        assert_eq!(cpu_percent(&sample), 100.0);
+    }
+
+    #[test]
+    fn a_container_saturating_every_core_reports_all_of_them() {
+        let sample = stats(cpu(400, 1_400, 4), cpu(0, 1_000, 4));
+
+        assert_eq!(cpu_percent(&sample), 400.0);
+    }
+
+    #[test]
+    fn an_idle_container_reports_nothing() {
+        let sample = stats(cpu(100, 1_400, 4), cpu(100, 1_000, 4));
+
+        assert_eq!(cpu_percent(&sample), 0.0);
+    }
+
+    #[test]
+    fn a_first_sample_without_a_previous_one_reports_nothing() {
+        let sample = stats(cpu(100, 1_400, 4), cpu(0, 0, 0));
+
+        assert_eq!(cpu_percent(&ContainerStatsResponse::default()), 0.0);
+        assert_eq!(cpu_percent(&sample), 0.0);
+    }
+
+    #[test]
+    fn counters_that_went_backwards_report_nothing() {
+        let sample = stats(cpu(50, 1_200, 4), cpu(100, 1_400, 4));
+
+        assert_eq!(cpu_percent(&sample), 0.0);
+    }
+
+    #[test]
+    fn page_cache_is_left_out_of_the_memory_reading() {
+        let mut breakdown = HashMap::new();
+        breakdown.insert("inactive_file".to_string(), 400u64);
+
+        let sample = ContainerStatsResponse {
+            memory_stats: Some(ContainerMemoryStats {
+                usage: Some(1_000),
+                stats: Some(breakdown),
+                limit: Some(4_096),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+
+        assert_eq!(memory_used(&sample), 600);
+    }
+
+    #[test]
+    fn memory_without_a_breakdown_is_taken_as_reported() {
+        let sample = ContainerStatsResponse {
+            memory_stats: Some(ContainerMemoryStats {
+                usage: Some(1_000),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+
+        assert_eq!(memory_used(&sample), 1_000);
+        assert_eq!(memory_used(&ContainerStatsResponse::default()), 0);
+    }
+
+    #[test]
+    fn traffic_is_added_up_across_every_interface() {
+        let mut networks = HashMap::new();
+        networks.insert(
+            "eth0".to_string(),
+            ContainerNetworkStats {
+                rx_bytes: Some(100),
+                tx_bytes: Some(50),
+                ..Default::default()
+            },
+        );
+        networks.insert(
+            "eth1".to_string(),
+            ContainerNetworkStats {
+                rx_bytes: Some(400),
+                tx_bytes: Some(150),
+                ..Default::default()
+            },
+        );
+
+        let sample = ContainerStatsResponse {
+            networks: Some(networks),
+            ..Default::default()
+        };
+
+        assert_eq!(network_totals(&sample), (500, 200));
+        assert_eq!(network_totals(&ContainerStatsResponse::default()), (0, 0));
     }
 }
 

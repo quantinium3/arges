@@ -1,6 +1,6 @@
 [package]
 name = "arges"
-version = "0.3.8"
+version = "0.3.9"
 edition = "2024"
 
 [dependencies]
@@ -18,7 +18,7 @@ serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0"
 sha2 = "0.10.9"
 sqlx = { version = "0.8.6", features = ["migrate", "runtime-tokio", "sqlite"] }
-sysinfo = { version = "0.38.4", default-features = false, features = ["system", "disk"] }
+sysinfo = { version = "0.38.4", default-features = false, features = ["system", "disk", "network"] }
 thiserror = "2.0.19"
 tokio = { version = "1.53.1", features = ["full"] }
 tower-http = { version = "0.7.0", features = ["catch-panic", "trace"] }

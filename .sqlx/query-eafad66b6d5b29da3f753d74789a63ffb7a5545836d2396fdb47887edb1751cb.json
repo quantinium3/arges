@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "select id as \"id!: String\" from deployments",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: String",
+        "ordinal": 0,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "eafad66b6d5b29da3f753d74789a63ffb7a5545836d2396fdb47887edb1751cb"
+}

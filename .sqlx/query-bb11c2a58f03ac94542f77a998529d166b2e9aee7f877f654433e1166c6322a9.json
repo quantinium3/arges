@@ -1,0 +1,38 @@
+{
+  "db_name": "SQLite",
+  "query": "select\n            (ts / ?1) * ?1 as \"ts!: i64\",\n            mount_point as \"mount_point!: String\",\n            cast(max(total_bytes) as integer) as \"total_bytes!: i64\",\n            cast(avg(available_bytes) as integer) as \"available_bytes!: i64\"\n        from filesystem_samples\n        where ts >= ?2 and ts <= ?3\n        group by 1, 2\n        order by 2, 1",
+  "describe": {
+    "columns": [
+      {
+        "name": "ts!: i64",
+        "ordinal": 0,
+        "type_info": "Null"
+      },
+      {
+        "name": "mount_point!: String",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "total_bytes!: i64",
+        "ordinal": 2,
+        "type_info": "Null"
+      },
+      {
+        "name": "available_bytes!: i64",
+        "ordinal": 3,
+        "type_info": "Null"
+      }
+    ],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": [
+      null,
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "bb11c2a58f03ac94542f77a998529d166b2e9aee7f877f654433e1166c6322a9"
+}

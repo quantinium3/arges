@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "insert or replace into host_samples (\n            ts, window_seconds, cpu_percent, memory_used, memory_total,\n            swap_used, swap_total, load_one, load_five, load_fifteen,\n            network_rx_bytes, network_tx_bytes\n        ) values (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 12
+    },
+    "nullable": []
+  },
+  "hash": "bbf8496028a1437bb755fb2f9b104c7471d1b870916f88d167a679785430e82b"
+}

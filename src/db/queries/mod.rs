@@ -1,6 +1,7 @@
 pub mod audit;
 pub mod deployments;
 pub mod health;
+pub mod metrics;
 pub mod packages;
 pub mod parameters;
 pub mod proxy;

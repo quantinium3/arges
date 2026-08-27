@@ -1,0 +1,38 @@
+{
+  "db_name": "SQLite",
+  "query": "select\n            ts as \"ts!: i64\", mount_point as \"mount_point!: String\",\n            total_bytes as \"total_bytes!: i64\", available_bytes as \"available_bytes!: i64\"\n        from filesystem_samples\n        where ts = (select max(ts) from filesystem_samples)\n        order by mount_point",
+  "describe": {
+    "columns": [
+      {
+        "name": "ts!: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "mount_point!: String",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "total_bytes!: i64",
+        "ordinal": 2,
+        "type_info": "Integer"
+      },
+      {
+        "name": "available_bytes!: i64",
+        "ordinal": 3,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "a9f4cd08f8ccc6c6c2731d4e23d723d48710b2f905437f400f9cf20ebdbcc87c"
+}

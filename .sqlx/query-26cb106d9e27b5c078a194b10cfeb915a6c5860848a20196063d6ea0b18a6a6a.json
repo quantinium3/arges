@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "insert or replace into filesystem_samples (ts, mount_point, total_bytes, available_bytes)\n            values (?1, ?2, ?3, ?4)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "26cb106d9e27b5c078a194b10cfeb915a6c5860848a20196063d6ea0b18a6a6a"
+}

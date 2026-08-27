@@ -31,3 +31,9 @@ pub const DEPLOYMENT_RECONCILE_INTERVAL: Duration = Duration::from_secs(60);
 pub const RETENTION_INTERVAL: Duration = Duration::from_secs(6 * 60 * 60);
 
 pub const DEFAULT_JOURNAL_UNIT: &str = "arges.service";
+
+pub const METRICS_SAMPLE_INTERVAL: Duration = Duration::from_secs(15);
+pub const METRICS_RETENTION: Duration = Duration::from_secs(7 * 24 * 60 * 60);
+pub const METRICS_DEFAULT_RANGE: Duration = Duration::from_secs(60 * 60);
+pub const METRICS_MAX_POINTS: i64 = 240;
+pub const METRICS_STATS_TIMEOUT: Duration = Duration::from_secs(10);

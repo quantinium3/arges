@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "insert or replace into deployment_samples (\n                ts, deployment_id, window_seconds, cpu_percent, memory_used,\n                memory_limit, network_rx_bytes, network_tx_bytes\n            ) values (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 8
+    },
+    "nullable": []
+  },
+  "hash": "4e790e34f7e8ce598746c565c397582bb473fc4304bb99f71207206c8c7ad015"
+}

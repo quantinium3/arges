@@ -1,0 +1,86 @@
+{
+  "db_name": "SQLite",
+  "query": "select\n            ts as \"ts!: i64\", window_seconds as \"window_seconds!: i64\",\n            cpu_percent as \"cpu_percent!: f64\",\n            memory_used as \"memory_used!: i64\", memory_total as \"memory_total!: i64\",\n            swap_used as \"swap_used!: i64\", swap_total as \"swap_total!: i64\",\n            load_one as \"load_one!: f64\", load_five as \"load_five!: f64\",\n            load_fifteen as \"load_fifteen!: f64\",\n            network_rx_bytes as \"network_rx_bytes!: i64\",\n            network_tx_bytes as \"network_tx_bytes!: i64\"\n        from host_samples order by ts desc limit 1",
+  "describe": {
+    "columns": [
+      {
+        "name": "ts!: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "window_seconds!: i64",
+        "ordinal": 1,
+        "type_info": "Integer"
+      },
+      {
+        "name": "cpu_percent!: f64",
+        "ordinal": 2,
+        "type_info": "Float"
+      },
+      {
+        "name": "memory_used!: i64",
+        "ordinal": 3,
+        "type_info": "Integer"
+      },
+      {
+        "name": "memory_total!: i64",
+        "ordinal": 4,
+        "type_info": "Integer"
+      },
+      {
+        "name": "swap_used!: i64",
+        "ordinal": 5,
+        "type_info": "Integer"
+      },
+      {
+        "name": "swap_total!: i64",
+        "ordinal": 6,
+        "type_info": "Integer"
+      },
+      {
+        "name": "load_one!: f64",
+        "ordinal": 7,
+        "type_info": "Float"
+      },
+      {
+        "name": "load_five!: f64",
+        "ordinal": 8,
+        "type_info": "Float"
+      },
+      {
+        "name": "load_fifteen!: f64",
+        "ordinal": 9,
+        "type_info": "Float"
+      },
+      {
+        "name": "network_rx_bytes!: i64",
+        "ordinal": 10,
+        "type_info": "Integer"
+      },
+      {
+        "name": "network_tx_bytes!: i64",
+        "ordinal": 11,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "1a51b99a576520219ba06f0a8893a1ab83c408fb0ba34911d689043eb4948a43"
+}

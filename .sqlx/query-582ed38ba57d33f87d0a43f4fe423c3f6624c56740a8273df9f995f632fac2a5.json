@@ -1,0 +1,68 @@
+{
+  "db_name": "SQLite",
+  "query": "select\n            d.name as \"name!: String\",\n            s.ts as \"ts!: i64\", s.deployment_id as \"deployment_id!: String\",\n            s.window_seconds as \"window_seconds!: i64\",\n            s.cpu_percent as \"cpu_percent!: f64\",\n            s.memory_used as \"memory_used!: i64\",\n            s.memory_limit as \"memory_limit: i64\",\n            s.network_rx_bytes as \"network_rx_bytes!: i64\",\n            s.network_tx_bytes as \"network_tx_bytes!: i64\"\n        from deployment_samples s\n        join deployments d on d.id = s.deployment_id\n        where s.ts = (select max(ts) from deployment_samples)\n        order by d.name",
+  "describe": {
+    "columns": [
+      {
+        "name": "name!: String",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "ts!: i64",
+        "ordinal": 1,
+        "type_info": "Integer"
+      },
+      {
+        "name": "deployment_id!: String",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "window_seconds!: i64",
+        "ordinal": 3,
+        "type_info": "Integer"
+      },
+      {
+        "name": "cpu_percent!: f64",
+        "ordinal": 4,
+        "type_info": "Float"
+      },
+      {
+        "name": "memory_used!: i64",
+        "ordinal": 5,
+        "type_info": "Integer"
+      },
+      {
+        "name": "memory_limit: i64",
+        "ordinal": 6,
+        "type_info": "Integer"
+      },
+      {
+        "name": "network_rx_bytes!: i64",
+        "ordinal": 7,
+        "type_info": "Integer"
+      },
+      {
+        "name": "network_tx_bytes!: i64",
+        "ordinal": 8,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "582ed38ba57d33f87d0a43f4fe423c3f6624c56740a8273df9f995f632fac2a5"
+}

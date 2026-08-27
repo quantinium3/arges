@@ -13,7 +13,9 @@ use tower_http::{
 use tracing::Level;
 
 use crate::{
-    handler::{deployments, health, logs, packages, parameters, proxy, services, sysinfo, version},
+    handler::{
+        deployments, health, logs, metrics, packages, parameters, proxy, services, sysinfo, version,
+    },
     state::AppState,
     utils::api_response::{ApiError, ApiResponse, ApiResult},
 };
@@ -73,6 +75,7 @@ pub fn routes(state: AppState) -> Router {
         )
         .route("/retention", post(deployments::run_retention))
         .route("/{id}/logs", get(logs::deployment_logs))
+        .route("/{id}/metrics", get(metrics::get_deployment_metrics))
         .route("/{id}/start", post(deployments::start_deployment))
         .route("/{id}/stop", post(deployments::stop_deployment));
     let api_router = Router::new()
@@ -84,6 +87,8 @@ pub fn routes(state: AppState) -> Router {
         .route("/agent/logs", get(logs::agent_logs))
         .route("/agent/logs/history", get(logs::agent_log_history))
         .route("/health", get(health::get_health))
+        .route("/metrics", get(metrics::get_metrics))
+        .route("/metrics/history", get(metrics::get_metrics_history))
         .route("/sysinfo", get(sysinfo::get_sysinfo))
         .route("/version", get(version::get_version));
 

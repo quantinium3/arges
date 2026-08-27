@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "delete from deployment_samples where ts < ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "54a63736287335ea1f3c814b59796cddede6d799eed3cb1749b5b6bedaf8df70"
+}

@@ -1,0 +1,56 @@
+{
+  "db_name": "SQLite",
+  "query": "select\n            (ts / ?1) * ?1 as \"ts!: i64\",\n            avg(cpu_percent) as \"cpu_percent!: f64\",\n            max(cpu_percent) as \"cpu_percent_max!: f64\",\n            cast(avg(memory_used) as integer) as \"memory_used!: i64\",\n            cast(max(memory_limit) as integer) as \"memory_limit: i64\",\n            sum(network_rx_bytes) * 1.0 / sum(window_seconds) as \"network_rx_bps!: f64\",\n            sum(network_tx_bytes) * 1.0 / sum(window_seconds) as \"network_tx_bps!: f64\"\n        from deployment_samples\n        where deployment_id = ?4 and ts >= ?2 and ts <= ?3\n        group by 1\n        order by 1",
+  "describe": {
+    "columns": [
+      {
+        "name": "ts!: i64",
+        "ordinal": 0,
+        "type_info": "Null"
+      },
+      {
+        "name": "cpu_percent!: f64",
+        "ordinal": 1,
+        "type_info": "Null"
+      },
+      {
+        "name": "cpu_percent_max!: f64",
+        "ordinal": 2,
+        "type_info": "Null"
+      },
+      {
+        "name": "memory_used!: i64",
+        "ordinal": 3,
+        "type_info": "Null"
+      },
+      {
+        "name": "memory_limit: i64",
+        "ordinal": 4,
+        "type_info": "Null"
+      },
+      {
+        "name": "network_rx_bps!: f64",
+        "ordinal": 5,
+        "type_info": "Null"
+      },
+      {
+        "name": "network_tx_bps!: f64",
+        "ordinal": 6,
+        "type_info": "Null"
+      }
+    ],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "b8b32874f427022141582389ad6d3514a9220efc0556445ec4ef75ab99a79482"
+}
